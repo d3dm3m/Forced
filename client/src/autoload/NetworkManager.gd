@@ -38,27 +38,6 @@ func connect_to_space(token: String):
 var _pending_token: String = ""
 var _handshake_sent: bool = false
 
-func _process(delta):
-	ws_peer.poll()
-	var state = ws_peer.get_ready_state()
-
-	if state == WebSocketPeer.STATE_OPEN:
-		if !_handshake_sent and _pending_token != "":
-			_send_login_packet()
-			_handshake_sent = true
-
-		while ws_peer.get_available_packet_count() > 0:
-			var pkt = ws_peer.get_packet()
-			var txt = pkt.get_string_from_utf8()
-			var json = JSON.parse_string(txt)
-			if json:
-				_handle_packet(json)
-	elif state == WebSocketPeer.STATE_CLOSED:
-		if is_connected_to_space:
-			print("NetworkManager: Disconnected from Space Core")
-			is_connected_to_space = false
-			emit_signal("disconnected_from_server")
-
 func _send_login_packet():
 	var pkt = {
 		"type": "LOGIN_WITH_TOKEN",
