@@ -1,0 +1,92 @@
+[
+  {
+    "id": "marine",
+    "name": "Marine",
+    "type": "Ground",
+    "description": "Tank / Frontline. Uses Taunt shouts.",
+    "archetype": "The Wall",
+    "stats": {
+      "health": 150,
+      "speed": 10,
+      "stamina": 100,
+      "defense": 20,
+      "sensor_range": 0
+    },
+    "slots": 4
+  },
+  {
+    "id": "sapper",
+    "name": "Sapper",
+    "type": "Ground",
+    "description": "Area Denial / Support. Constructs hardpoints.",
+    "archetype": "The Architect",
+    "stats": {
+      "health": 100,
+      "speed": 12,
+      "stamina": 100,
+      "defense": 10,
+      "sensor_range": 0
+    },
+    "slots": 6
+  },
+  {
+    "id": "biologist",
+    "name": "Xeno-Biologist",
+    "type": "Ground",
+    "description": "Healer / Buffer. Harvests biomass.",
+    "archetype": "The Witch",
+    "stats": {
+      "health": 80,
+      "speed": 14,
+      "stamina": 120,
+      "defense": 5,
+      "sensor_range": 0
+    },
+    "slots": 4
+  },
+  {
+    "id": "frigate_ace",
+    "name": "Frigate Ace",
+    "type": "Space",
+    "description": "Tackle / Scout. Speed tanking.",
+    "archetype": "The Needle",
+    "stats": {
+      "health": 500,
+      "speed": 50,
+      "stamina": 0,
+      "defense": 10,
+      "sensor_range": 100.0
+    },
+    "slots": 3
+  },
+  {
+    "id": "cruiser_captain",
+    "name": "Cruiser Captain",
+    "type": "Space",
+    "description": "DPS / Line Ship. Broadside combat.",
+    "archetype": "The Anvil",
+    "stats": {
+      "health": 2000,
+      "speed": 20,
+      "stamina": 0,
+      "defense": 50,
+      "sensor_range": 80.0
+    },
+    "slots": 5
+  },
+  {
+    "id": "industrialist",
+    "name": "Industrialist",
+    "type": "Space",
+    "description": "Logistics / Economy. Mining.",
+    "archetype": "The Vein",
+    "stats": {
+      "health": 1200,
+      "speed": 15,
+      "stamina": 0,
+      "defense": 30,
+      "sensor_range": 60.0
+    },
+    "slots": 8
+  }
+]

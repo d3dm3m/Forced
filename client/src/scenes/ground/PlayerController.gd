@@ -1,0 +1,118 @@
+extends CharacterBody3D
+
+# Settings
+@export var speed: float = 10.0
+@export var acceleration: float = 50.0
+@export var friction: float = 60.0
+
+# Network
+var update_timer: float = 0.0
+const UPDATE_RATE: float = 0.05 # 20Hz
+
+# Combat
+var current_target_id: String = ""
+var camera: Camera3D
+
+func _ready():
+	# Temporary: Spawn Hangar Zone for testing
+	var hangar = preload("res://src/scenes/ground/HangarZone.gd").new()
+	hangar.position = Vector3(10, 0, 10)
+	get_parent().call_deferred("add_child", hangar)
+
+	# Find Camera (Assuming CameraRig is sibling or child, for now grab viewport camera)
+	camera = get_viewport().get_camera_3d()
+
+func _physics_process(delta):
+	# Movement
+	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var direction = Vector3(input_dir.x, 0, input_dir.y).normalized()
+
+	if direction:
+		velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
+		velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
+	else:
+		velocity.x = move_toward(velocity.x, 0, friction * delta)
+		velocity.z = move_toward(velocity.z, 0, friction * delta)
+
+	move_and_slide()
+
+	# Network Update
+	update_timer += delta
+	if update_timer >= UPDATE_RATE:
+		update_timer = 0
+		_send_movement()
+
+func _input(event):
+	# Tab Targeting
+	if event.is_action_pressed("ui_focus_next"): # Tab
+		_cycle_target()
+
+	# Mouse Click Targeting
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_raycast_target(event.position)
+
+	# F1 Self Target (Placeholder for Party)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
+		current_target_id = "" # Clear or Set to Self ID if known
+		print("Target Self/None")
+
+	# Fire
+	if event.is_action_pressed("ui_accept"): # Space or Enter, map "Fire" later
+		_fire_weapon()
+
+func _cycle_target():
+	# Access GroundEntityManager. Assuming it's a sibling or singleton.
+	# For MVP, let's assume we can find it in the Scene Tree.
+	var manager = get_node_or_null("../GroundEntityManager")
+	if manager:
+		current_target_id = manager.get_next_target(current_target_id)
+		print("Target Locked: ", current_target_id)
+		_update_reticle()
+
+func _raycast_target(mouse_pos):
+	if !camera:
+		camera = get_viewport().get_camera_3d()
+		if !camera: return
+
+	var from = camera.project_ray_origin(mouse_pos)
+	var to = from + camera.project_ray_normal(mouse_pos) * 1000.0
+
+	var space_state = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 2 # Layer 2 (Entities)
+
+	var result = space_state.intersect_ray(query)
+	if result:
+		var collider = result.collider
+		if collider.has_meta("entity_id"):
+			current_target_id = collider.get_meta("entity_id")
+			print("Click Target: ", current_target_id)
+			_update_reticle()
+
+func _fire_weapon():
+	if current_target_id == "":
+		print("No Target!")
+		return
+
+	print("Firing at ", current_target_id)
+
+	# Visuals: Muzzle Flash (Placeholder)
+
+	# Network
+	var payload = { "target_id": current_target_id }
+	NetworkManager.send_udp_packet("PACKET_TYPE_GROUND_ATTACK", payload)
+
+func _update_reticle():
+	# Visual feedback for target (Simple print for now or highlight shader)
+	# In real imp, we would move a Sprite3D to the target's position.
+	pass
+
+func _send_movement():
+	var payload = {
+		"x": global_position.x,
+		"y": global_position.z, # Mapping 3D Z to 2D Y
+		"vx": velocity.x,
+		"vy": velocity.z,
+		"ts": Time.get_unix_time_from_system() * 1000
+	}
+	NetworkManager.send_udp_packet("PACKET_TYPE_GROUND_MOVEMENT", payload)

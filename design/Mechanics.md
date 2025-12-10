@@ -1,0 +1,98 @@
+# Game Mechanics & Systems Architecture (Beta Design)
+
+## Core Philosophy: Parallel Loops & The Long Year
+**"Boots on the Ground, Eyes in the Stars."**
+We have removed the artificial division between layers. Combat, Industry, and Exploration exist in parallel on both the **Ground** and the **Void**.
+
+---
+
+## 1. Parallel Systems: Parity
+
+### Mining
+*   **Ground (The Drill):** Players operate heavy Exosuit Rigs to bore into planetary crusts.
+    *   *Mechanic:* Rhythm-based active reloading to prevent drill overheat.
+    *   *Resource:* Raw Ores (Iron, Tungsten) for Hull plating.
+*   **Space (The Laser):** Ships use Mining Lasers on asteroid belts.
+    *   *Mechanic:* Managing beam intensity vs. rock volatility (it can explode).
+    *   *Resource:* Volatile Gases and Ice for Fuel and Coolant.
+
+### Combat
+*   **Ground (Tactical):** Isometric shooter. Cover-based. Skill-shots.
+    *   *Context:* Clearing bunkers, defending cities from insect swarms.
+*   **Space (Dogfighting):** Newtonian-lite flight.
+    *   *Context:* Fleet battles, gate camps, blockade running.
+
+### Research & Fabrication
+*   **Labs exist everywhere.**
+    *   *City Hubs (Ground):* Safe, low-yield research.
+    *   *Starbases (Space):* Risky, high-yield research (required for T2+ blueprints).
+
+---
+
+## 2. Progression Curve: The Ladder
+
+### The Cradle (Planetary Surface)
+*   **Status:** High-Security Safe Zone.
+*   **Purpose:** The nursery. Planetary shields hold back the Entropy.
+*   **Gameplay:** Tutorial-heavy, forgiving death penalties (Gear durability loss only).
+*   **Transition:** Players must build a ship to leave the Cradle.
+
+### The Void (Deep Space)
+*   **Status:** Low-Sec / Null-Sec.
+*   **Purpose:** The Endgame. The Entropy is strong here.
+*   **Gameplay:** Full-Loot PvP. High-tier resources.
+*   **Requirement:** You must "graduate" to survive.
+
+---
+
+## 3. The Yearly Cycle (Seasonal Reset)
+*   **Duration:** 12 Months (Real-time).
+*   **Concept:** The timeline is unstable. We hold reality together for as long as we can before we must "Leap."
+
+### The Calendar
+*   **Phase 1-4 (Establishment):** Safe zones active. Economy stabilizes. Guilds claim land.
+*   **Phase 5-10 (Conflict):** Resources in High-Sec run dry. Wars for Outer Rim territory begin.
+*   **Phase 11 (The Crumble):**
+    *   Outer systems destabilize (Physics corruption).
+    *   Planetary shields fail.
+    *   Sanity drain increases globally.
+*   **Phase 12 (The Final Event - "Eye of Entropy"):**
+    *   The hardest Rifts open.
+    *   **Goal:** Survive as long as possible.
+    *   **Reward:** "Legacy Titles" and cosmetics that persist to the next timeline.
+    *   **The End:** The Server Wipes. We "Leap" to a new timeline (Season 2).
+
+---
+
+## 4. Character & Identity
+*   **Heritage:** Baseline Human, Ascended (Cyborg), Gene-Forged.
+*   **Allegiance:** USF (Stasis), Celestial Concord (Integration), Void Syndicate (Extraction).
+
+---
+
+## 5. Economy & Industry (Revised)
+*   **Currencies:** Solium (Fiat) and Old-Earth Data (Legacy).
+*   **Production:** Full-Loss (Destroyed items are gone).
+*   **Decay:** Blueprints have limited runs. Organic items spoil.
+
+---
+
+## 6. Targeting Systems
+### Ground (Tactical Lock)
+*   **Mechanism:** Single Target Lock.
+*   **Controls:**
+    *   `TAB`: Cycles through visible enemies/neutrals.
+    *   `F1-F4`: Selects party members (for healing/buffs).
+    *   `Mouse Click`: Raycast selection.
+*   **Visuals:** Bracket/Reticle around the locked entity.
+
+### Space (Multi-Lock)
+*   **Mechanism:** Multi-Target Lock based on CPU/Sensor stats.
+*   **Gameplay:** Lock-on time varies by target signature. Weapons can be split (Drones group A attacks Target 1, Missiles attack Target 2).
+
+---
+
+## 7. Deep Dive: Bio-Grafting (The Surgery)
+*   **Surgery Loop:** Requires Surgery Bay + Biomass + Connection Minigame.
+*   **Rejection:** Compatibility Score dictates Bleeding/Spasm/Necrosis.
+*   **Sanity:** Low Sanity causes Friendly Fire, Warp Refusal, and Vendor Fear.

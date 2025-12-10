@@ -1,0 +1,41 @@
+[
+  {
+    "id": "kestrel",
+    "name": "Kestrel",
+    "faction": "USF",
+    "class": "Light",
+    "stats": {
+      "base_hull": 1000,
+      "base_shield": 500,
+      "capacitor": 100,
+      "high_slots": 2
+    },
+    "description": "Standard USF Light Frigate."
+  },
+  {
+    "id": "omen",
+    "name": "Omen",
+    "faction": "Celestial Concord",
+    "class": "Medium",
+    "stats": {
+      "base_hull": 2000,
+      "base_shield": 300,
+      "capacitor": 200,
+      "high_slots": 4
+    },
+    "description": "Concord Medium Cruiser. Organic hull regeneration."
+  },
+  {
+    "id": "hauler",
+    "name": "Hauler",
+    "faction": "Void Syndicate",
+    "class": "Heavy",
+    "stats": {
+      "base_hull": 1500,
+      "base_shield": 200,
+      "capacitor": 150,
+      "high_slots": 1
+    },
+    "description": "Syndicate Industrial Ship. Massive cargo hold."
+  }
+]
