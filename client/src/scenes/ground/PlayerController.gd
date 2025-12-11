@@ -34,6 +34,27 @@ func _ready():
 	torso.position.y = 0.75
 	add_child(torso)
 
+	# Fog of War (Vision Sensor)
+	var fog_script = preload("res://src/vfx/FogOfWar.gd")
+	var fog = fog_script.new()
+	torso.add_child(fog)
+	# Default range, ideally updated from Class Stats in Login
+	fog.setup(20.0)
+	fog.position.y = 0.5 # High on torso
+	fog.rotation.x = -0.1 # Slight tilt down
+
+	# Atmosphere (WorldEnvironment)
+	# Force pitch black ambient to make Fog of War work
+	var world_env = WorldEnvironment.new()
+	var env = Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color.BLACK
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color.BLACK
+	env.ambient_light_energy = 0.0
+	world_env.environment = env
+	add_child(world_env)
+
 	# Listen for Gear
 	NetworkManager.connect("packet_received", _on_packet_received)
 

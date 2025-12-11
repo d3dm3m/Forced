@@ -18,8 +18,8 @@
       "turn_rate": 0.6,
       "cast_point": 0.3,
       "backswing": 0.5,
-      "vision_range_day": 1200,
-      "vision_range_night": 800
+      "vision_range_day": 20,
+      "vision_range_night": 15
     },
     "slots": 4
   },
@@ -42,8 +42,8 @@
       "turn_rate": 0.75,
       "cast_point": 0.3,
       "backswing": 0.4,
-      "vision_range_day": 1200,
-      "vision_range_night": 800
+      "vision_range_day": 22,
+      "vision_range_night": 18
     },
     "slots": 6
   },
@@ -66,8 +66,8 @@
       "turn_rate": 0.9,
       "cast_point": 0.2,
       "backswing": 0.3,
-      "vision_range_day": 1400,
-      "vision_range_night": 1000
+      "vision_range_day": 25,
+      "vision_range_night": 20
     },
     "slots": 4
   },
