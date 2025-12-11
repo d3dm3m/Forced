@@ -10,7 +10,11 @@
       "speed": 10,
       "stamina": 100,
       "defense": 20,
-      "sensor_range": 0
+      "sensor_range": 0,
+      "mass": 200.0,
+      "slew_rate": 2.0,
+      "scan_resolution": 100.0,
+      "signature_radius": 10.0
     },
     "slots": 4
   },
@@ -25,7 +29,11 @@
       "speed": 12,
       "stamina": 100,
       "defense": 10,
-      "sensor_range": 0
+      "sensor_range": 0,
+      "mass": 150.0,
+      "slew_rate": 4.0,
+      "scan_resolution": 200.0,
+      "signature_radius": 5.0
     },
     "slots": 6
   },
@@ -40,7 +48,11 @@
       "speed": 14,
       "stamina": 120,
       "defense": 5,
-      "sensor_range": 0
+      "sensor_range": 0,
+      "mass": 80.0,
+      "slew_rate": 8.0,
+      "scan_resolution": 400.0,
+      "signature_radius": 2.0
     },
     "slots": 4
   },
@@ -55,7 +67,11 @@
       "speed": 50,
       "stamina": 0,
       "defense": 10,
-      "sensor_range": 100.0
+      "sensor_range": 100.0,
+      "mass": 1000.0,
+      "slew_rate": 1.0,
+      "scan_resolution": 500.0,
+      "signature_radius": 50.0
     },
     "slots": 3
   },
@@ -70,7 +86,11 @@
       "speed": 20,
       "stamina": 0,
       "defense": 50,
-      "sensor_range": 80.0
+      "sensor_range": 80.0,
+      "mass": 5000.0,
+      "slew_rate": 0.5,
+      "scan_resolution": 200.0,
+      "signature_radius": 200.0
     },
     "slots": 5
   },
@@ -85,7 +105,11 @@
       "speed": 15,
       "stamina": 0,
       "defense": 30,
-      "sensor_range": 60.0
+      "sensor_range": 60.0,
+      "mass": 8000.0,
+      "slew_rate": 0.2,
+      "scan_resolution": 100.0,
+      "signature_radius": 300.0
     },
     "slots": 8
   }

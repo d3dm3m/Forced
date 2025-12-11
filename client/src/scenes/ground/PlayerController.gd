@@ -13,6 +13,10 @@ const UPDATE_RATE: float = 0.05 # 20Hz
 var current_target_id: String = ""
 var camera: Camera3D
 
+# Visuals
+var torso: Node3D
+var slew_rate: float = 2.0 # Radians/sec, dynamic based on class
+
 func _ready():
 	# Temporary: Spawn Hangar Zone for testing
 	var hangar = preload("res://src/scenes/ground/HangarZone.gd").new()
@@ -21,6 +25,14 @@ func _ready():
 
 	# Find Camera (Assuming CameraRig is sibling or child, for now grab viewport camera)
 	camera = get_viewport().get_camera_3d()
+
+	# Create Torso (Visual Representation for Turret Slew)
+	torso = MeshInstance3D.new()
+	var box = BoxMesh.new()
+	box.size = Vector3(0.5, 1.5, 0.5)
+	torso.mesh = box
+	torso.position.y = 0.75
+	add_child(torso)
 
 	# Listen for Gear
 	NetworkManager.connect("packet_received", _on_packet_received)
@@ -34,10 +46,11 @@ func _on_packet_received(type: String, payload: Dictionary):
 				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
 
 func _physics_process(delta):
-	# Movement
+	# Movement (Inertia)
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var direction = Vector3(input_dir.x, 0, input_dir.y).normalized()
 
+	# Note: move_toward handles linear acceleration/friction automatically
 	if direction:
 		velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 		velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
@@ -47,11 +60,48 @@ func _physics_process(delta):
 
 	move_and_slide()
 
+	# Turret Slew (Torso Tracking)
+	_handle_turret_slew(delta)
+
 	# Network Update
 	update_timer += delta
 	if update_timer >= UPDATE_RATE:
 		update_timer = 0
 		_send_movement()
+
+func _handle_turret_slew(delta):
+	if !camera: return
+
+	var mouse_pos = get_viewport().get_mouse_position()
+	var from = camera.project_ray_origin(mouse_pos)
+	var to = from + camera.project_ray_normal(mouse_pos) * 1000.0
+
+	# Raycast to ground plane (Y=0)
+	# Simple plane intersection math since physics raycast needs collision
+	var t = -from.y / (to.y - from.y)
+	if t >= 0:
+		var target_point = from + (to - from) * t
+		target_point.y = torso.global_position.y # Look level
+
+		# Calculate angle difference
+		var current_quat = torso.global_transform.basis.get_rotation_quaternion()
+		var target_transform = torso.global_transform.looking_at(target_point, Vector3.UP)
+		var target_quat = target_transform.basis.get_rotation_quaternion()
+
+		# Rotate towards
+		var new_quat = current_quat.slerp(target_quat, slew_rate * delta)
+		torso.global_transform.basis = Basis(new_quat)
+
+		# Firing Solution Check
+		var forward = -torso.global_transform.basis.z
+		var to_target = (target_point - torso.global_position).normalized()
+		var dot = forward.dot(to_target)
+
+		if dot > 0.99:
+			# Aligned
+			pass # Green Reticle logic would go here
+		else:
+			pass # Red Reticle logic
 
 func _input(event):
 	# Tab Targeting
@@ -60,7 +110,7 @@ func _input(event):
 
 	# Mouse Click Targeting
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_raycast_target(event.position)
+		pass # Raycast handled in _handle_turret_slew implicitly for looking, selection separate
 
 	# F1 Self Target (Placeholder for Party)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:

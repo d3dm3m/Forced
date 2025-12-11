@@ -131,3 +131,20 @@ Preventing escape is a dedicated role.
 *   **Shields:** Regenerating, weak to EM. First line of defense.
 *   **Armor:** Static HP, high Kinetic resistance. Reduces speed when heavy plates are installed.
 *   **Hull:** The structure. No resistances. When this hits 0, the ship explodes.
+
+## 9. Ground Combat: Industrial Rigs
+Instead of generic "characters," players pilot heavy Exosuits with distinct weight and control profiles.
+
+### Physics Profiles
+*   **The Marine (Iso-Static Dreadnought):** High Inertia, Low Slew Rate. A moving turret.
+*   **The Sapper (Hex-Stabilized Construction):** Medium Inertia, Snap-Locking Slew.
+*   **The Biologist (Vector-Thrust Hazard):** Low Inertia (Instant), High Slew.
+
+### Targeting Sensors
+*   **Threat Signatures:** Marines have high signature radius (auto-taunt).
+*   **Structural Analysis:** Sappers see weak points and grid snaps.
+*   **Bio-Scan:** Biologists have fast scan resolution for triage.
+
+### Resource Management (Suit Battery)
+*   **Capacitor:** Replaces Mana. Powers shields, weapons, and tools.
+*   **Depletion:** 0% Cap = Immobilization.
