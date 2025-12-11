@@ -21,9 +21,10 @@ type GroundSession struct {
 }
 
 var (
-	sessions = make(map[string]*GroundSession)
-	mu       sync.RWMutex
-	projMgr  *game.ProjectileManager
+	sessions   = make(map[string]*GroundSession)
+	mu         sync.RWMutex
+	projMgr    *game.ProjectileManager
+	gatekeeper game.IGatekeeper
 )
 
 // Main
@@ -57,6 +58,7 @@ func main() {
 
 	repo := game.NewPostgresPlayerRepository()
 	projMgr = game.NewProjectileManager()
+	gatekeeper = game.NewRedisGatekeeper()
 
 	go gameLoop(conn, repo)
 
@@ -142,10 +144,23 @@ func handleLaunchRequest(conn *net.UDPConn, addr *net.UDPAddr) {
 		return
 	}
 
+	// Determine Destination Server
+	systemID := session.Player.SystemID
+	if systemID == "" {
+		systemID = "Sol-0" // Default
+	}
+
+	destURL, err := gatekeeper.GetServerForSystem(systemID)
+	if err != nil {
+		log.Printf("Failed to resolve gatekeeper route for system %s: %v", systemID, err)
+		// Fallback or error handling
+		destURL = "ws://localhost:8080/ws"
+	}
+
 	// Send Back
 	payload := map[string]string{
 		"token": token,
-		"url":   "ws://localhost:8080/ws", // Space Core URL
+		"url":   destURL,
 	}
 	bytes, _ := json.Marshal(payload)
 

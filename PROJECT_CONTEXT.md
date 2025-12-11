@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 06:01:52
+**Last Updated:** 2025-12-11 06:13:44
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -81,7 +81,7 @@ graph TD
 - [x] **Sprint 15 (Integration):** Wired `MarketService` and `SurgeryService` to frontend UI (`MarketWindow`, `SurgeryWindow`).
 - [x] **Sprint 16 (Ground):** Established Ground Gameplay Loop (20Hz UDP, Validation, Broadcasting).
 - [x] **Sprint 17 (Tether):** Implemented Ground Persistence and Hangar Handoff trigger.
-- [ ] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.
+- [x] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.
 
 ## The Macro-Scale Architecture (Planned)
 * **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.
@@ -95,6 +95,7 @@ graph TD
 - [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.
 - [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.
 - [x] **Space Core Combat Math:** Verify and tune the Hard Scifi physics implementation (Angular Ballistics, Sig Analysis).
+- [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.
 - [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).
 
 ## Directory Tree
@@ -3197,9 +3198,10 @@ type GroundSession struct {
 }
 
 var (
-	sessions = make(map[string]*GroundSession)
-	mu       sync.RWMutex
-	projMgr  *game.ProjectileManager
+	sessions   = make(map[string]*GroundSession)
+	mu         sync.RWMutex
+	projMgr    *game.ProjectileManager
+	gatekeeper game.IGatekeeper
 )
 
 // Main
@@ -3233,6 +3235,7 @@ func main() {
 
 	repo := game.NewPostgresPlayerRepository()
 	projMgr = game.NewProjectileManager()
+	gatekeeper = game.NewRedisGatekeeper()
 
 	go gameLoop(conn, repo)
 
@@ -3318,10 +3321,23 @@ func handleLaunchRequest(conn *net.UDPConn, addr *net.UDPAddr) {
 		return
 	}
 
+	// Determine Destination Server
+	systemID := session.Player.SystemID
+	if systemID == "" {
+		systemID = "Sol-0" // Default
+	}
+
+	destURL, err := gatekeeper.GetServerForSystem(systemID)
+	if err != nil {
+		log.Printf("Failed to resolve gatekeeper route for system %s: %v", systemID, err)
+		// Fallback or error handling
+		destURL = "ws://localhost:8080/ws"
+	}
+
 	// Send Back
 	payload := map[string]string{
 		"token": token,
-		"url":   "ws://localhost:8080/ws", // Space Core URL
+		"url":   destURL,
 	}
 	bytes, _ := json.Marshal(payload)
 

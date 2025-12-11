@@ -122,7 +122,7 @@ def main():
         out.write("- [x] **Sprint 15 (Integration):** Wired `MarketService` and `SurgeryService` to frontend UI (`MarketWindow`, `SurgeryWindow`).\n")
         out.write("- [x] **Sprint 16 (Ground):** Established Ground Gameplay Loop (20Hz UDP, Validation, Broadcasting).\n")
         out.write("- [x] **Sprint 17 (Tether):** Implemented Ground Persistence and Hangar Handoff trigger.\n")
-        out.write("- [ ] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.\n\n")
+        out.write("- [x] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.\n\n")
 
         out.write("## The Macro-Scale Architecture (Planned)\n")
         out.write("* **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.\n")
@@ -136,6 +136,7 @@ def main():
         out.write("- [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.\n")
         out.write("- [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.\n")
         out.write("- [x] **Space Core Combat Math:** Verify and tune the Hard Scifi physics implementation (Angular Ballistics, Sig Analysis).\n")
+        out.write("- [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.\n")
         out.write("- [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).\n\n")
 
         out.write("## Directory Tree\n\n```\n")
