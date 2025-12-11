@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 06:35:57
+**Last Updated:** 2025-12-11 07:01:50
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -849,13 +849,15 @@ func (pm *ProjectileManager) SpawnProjectile(
 func (pm *ProjectileManager) ResolveSpaceTurretFire(attacker *Player, target *Player, distance float64) (bool, float64) {
 	// 1. Get Attacker Stats
 	attackerStats := CalculateShipStats(attacker)
-	// Proxy: Use Speed as Slew Rate or default to 0.5 rad/s if missing specific stat
-	// Ideally we'd have a specific "TrackingSpeed" stat on the gun/ship.
-	// Using hardcoded default for MVP integration as per instructions.
-	trackingSpeed := 0.5
+	// Proxy: Use SensorRange as Slew Rate proxy (high sensor = fast lock/track)
+	// Normalized: 100 sensor range -> 1.0 rad/s tracking
+	trackingSpeed := attackerStats.SensorRange / 100.0
+	if trackingSpeed <= 0 {
+		trackingSpeed = 0.5
+	}
 
 	// 2. Get Target Stats
-	targetStats := CalculateShipStats(target)
+	// targetStats := CalculateShipStats(target) // Unused until we map SigRadius
 	// Proxy: We need Signature Radius. We'll use a derived value or default.
 	// Since CalculateShipStats doesn't explicitly return SigRadius in DerivedStats (yet),
 	// we will default it or pull from base ships if we had the ID.
