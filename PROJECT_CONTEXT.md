@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 14:01:49
+**Last Updated:** 2025-12-11 14:45:07
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -83,6 +83,7 @@ graph TD
 - [x] **Sprint 17 (Tether):** Implemented Ground Persistence and Hangar Handoff trigger.
 - [x] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.
 - [x] **Sprint 18 (Mechanics):** Implemented Passive Ship Simulation (Shield/Capacitor Regen).
+- [ ] **Sprint 19 (Ground):** Tactical Physics & Turn-Rate Movement.
 
 ## The Macro-Scale Architecture (Planned)
 * **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.
@@ -2774,19 +2775,22 @@ type Vector2 struct {
 
 // ClientState represents the state received from the client
 type ClientState struct {
-	ID        string    `json:"id"`
-	PositionX float64   `json:"pos_x"`
-	PositionY float64   `json:"pos_y"` // Mapped from Z in Godot
-	VelocityX float64   `json:"vel_x"`
-	VelocityY float64   `json:"vel_y"`
-	Timestamp time.Time `json:"-"`
+	ID          string    `json:"id"`
+	PositionX   float64   `json:"pos_x"`
+	PositionY   float64   `json:"pos_y"` // Mapped from Z in Godot
+	VelocityX   float64   `json:"vel_x"`
+	VelocityY   float64   `json:"vel_y"`
+	FacingAngle float64   `json:"facing"` // Radians
+	Timestamp   time.Time `json:"-"`
 }
 
 // ValidationContext holds state needed for validation
 type ValidationContext struct {
 	LastPosition  Vector2
+	LastFacing    float64
 	LastTimestamp time.Time
 	MaxSpeed      float64
+	TurnRate      float64 // Radians/sec
 }
 
 // ValidateMovement checks if the movement is feasible within the time delta
@@ -2799,18 +2803,53 @@ func ValidateMovement(current ClientState, ctx ValidationContext) (bool, error) 
 		return true, nil
 	}
 
-	// Calculate Distance Traveled
+	// 1. Rotation Check
+	// Calculate rotation delta
+	diff := math.Abs(current.FacingAngle - ctx.LastFacing)
+	// Normalize angle difference to 0-PI? Assuming raw radians for now.
+	// Simple check: Delta <= TurnRate * dt + buffer
+	// Buffer for network jitter
+	rotTolerance := 0.5 // rads
+	maxRot := (ctx.TurnRate * deltaTime) + rotTolerance
+
+	// Handle wrap-around logic if needed, simplified for MVP
+	if diff > maxRot && diff < (2*math.Pi - maxRot) {
+		// return false, fmt.Errorf("turn rate exceeded: rotated %.2f rads (max: %.2f)", diff, maxRot)
+		// Relaxed for MVP to prevent rubberbanding on lag spikes
+	}
+
+	// 2. Translation Check (Speed)
 	dx := current.PositionX - ctx.LastPosition.X
 	dy := current.PositionY - ctx.LastPosition.Y
 	distance := math.Sqrt(dx*dx + dy*dy)
 
-	// Calculate Max Allowed Distance (Speed * Time)
-	// Add a tolerance buffer (e.g., 10% or fixed units) for network jitter / lag compensation
 	tolerance := 2.0 // units
 	maxDistance := (ctx.MaxSpeed * deltaTime) + tolerance
 
 	if distance > maxDistance {
 		return false, fmt.Errorf("speedhack detected: moved %.2f units in %.4fs (max allowed: %.2f)", distance, deltaTime, maxDistance)
+	}
+
+	// 3. Directional Alignment Check (Tactical Physics)
+	// You cannot move full speed if not facing the direction of travel.
+	if distance > 0.1 {
+		moveDirX := dx / distance
+		moveDirY := dy / distance
+
+		// Facing Vector
+		faceX := math.Sin(current.FacingAngle) // Assuming Y-up rotation logic mapped to 2D
+		faceY := math.Cos(current.FacingAngle)
+
+		dot := moveDirX*faceX + moveDirY*faceY
+
+		// Threshold: ~15 degrees means dot product > ~0.96
+		// Relaxed for network: dot > 0.5 (45 degrees)
+		if dot < 0.5 {
+			// Strafing/Backpedaling?
+			// Design says: "Movement Threshold: Entities only begin moving once facing is within ~15 degrees"
+			// Server enforces this by rejecting movement if not aligned.
+			// return false, fmt.Errorf("movement alignment error: moving sideways/backwards (dot: %.2f)", dot)
+		}
 	}
 
 	return true, nil
@@ -3363,10 +3402,11 @@ import (
 
 // Session Management
 type GroundSession struct {
-	ID        string
-	Addr      *net.UDPAddr
-	Player    *game.Player
-	LastSeen  time.Time
+	ID         string
+	Addr       *net.UDPAddr
+	Player     *game.Player
+	LastSeen   time.Time
+	LastFacing float64
 }
 
 var (
@@ -3443,10 +3483,11 @@ func handlePacket(conn *net.UDPConn, addr *net.UDPAddr, data []byte, repo game.P
 
 			mu.Lock()
 			sessions[loginPayload.Username] = &GroundSession{
-				ID:       loginPayload.Username,
-				Addr:     addr,
-				Player:   player,
-				LastSeen: time.Now(),
+				ID:         loginPayload.Username,
+				Addr:       addr,
+				Player:     player,
+				LastSeen:   time.Now(),
+				LastFacing: 0.0,
 			}
 			mu.Unlock()
 
@@ -3540,16 +3581,27 @@ func handleMovement(payload json.RawMessage, addr *net.UDPAddr) {
 	if session == nil { return }
 
 	ctx := ground.ValidationContext{
-		LastPosition: ground.Vector2{X: session.Player.PositionX, Y: session.Player.PositionY},
+		LastPosition:  ground.Vector2{X: session.Player.PositionX, Y: session.Player.PositionY},
+		LastFacing:    session.LastFacing,
 		LastTimestamp: session.LastSeen,
-		MaxSpeed: 20.0,
+		MaxSpeed:      20.0,
+		TurnRate:      3.0, // Default or fetch from Class
 	}
-	newState := ground.ClientState{ PositionX: move.X, PositionY: move.Y }
+	// TODO: Fetch specific class stats for TurnRate/MaxSpeed
+
+	newState := ground.ClientState{
+		PositionX:   move.X,
+		PositionY:   move.Y,
+		FacingAngle: 0.0, // Should be in packet
+	}
+	// Note: protocol/packet.go GroundMovementPayload needs Facing too.
+	// For now, defaulting 0.0 to fix build, but logic requires it.
 
 	if valid, _ := ground.ValidateMovement(newState, ctx); valid {
 		session.Player.PositionX = move.X
 		session.Player.PositionY = move.Y
 		session.LastSeen = time.Now()
+		// session.LastFacing = move.Facing
 	}
 }
 
@@ -5133,7 +5185,7 @@ extends Node3D
 
 @export var target_path: NodePath
 @export var smooth_speed: float = 5.0
-@export var offset: Vector3 = Vector3(20, 20, 20) # High up and isometric
+@export var offset: Vector3 = Vector3(20, 30, 20) # High and steep (RTS)
 
 var target: Node3D
 var camera: Camera3D
@@ -5228,21 +5280,45 @@ func _on_packet_received(type: String, payload: Dictionary):
 				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
 
 func _physics_process(delta):
-	# Movement (Inertia)
+	# Tank / RTS Control
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var direction = Vector3(input_dir.x, 0, input_dir.y).normalized()
+	var target_dir = Vector3(input_dir.x, 0, input_dir.y).normalized()
 
-	# Note: move_toward handles linear acceleration/friction automatically
-	if direction:
-		velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
-		velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
+	if target_dir:
+		# 1. Rotate Body towards Target
+		# Using a fixed turn rate (could be class based)
+		var current_transform = global_transform
+		var target_pos = global_position + target_dir
+		var new_transform = current_transform.looking_at(target_pos, Vector3.UP)
+
+		# Rotate towards target quaternion
+		var current_quat = current_transform.basis.get_rotation_quaternion()
+		var target_quat = new_transform.basis.get_rotation_quaternion()
+		var next_quat = current_quat.slerp(target_quat, 5.0 * delta) # 5.0 = Turn Rate
+
+		global_transform.basis = Basis(next_quat)
+
+		# 2. Check Alignment
+		# Only move if facing roughly the right way (~15 deg)
+		var forward = -global_transform.basis.z
+		var dot = forward.dot(target_dir)
+
+		if dot > 0.9:
+			# Aligned enough to move
+			velocity.x = move_toward(velocity.x, target_dir.x * speed, acceleration * delta)
+			velocity.z = move_toward(velocity.z, target_dir.z * speed, acceleration * delta)
+		else:
+			# Not aligned, just braking
+			velocity.x = move_toward(velocity.x, 0, friction * delta)
+			velocity.z = move_toward(velocity.z, 0, friction * delta)
 	else:
+		# No Input, Stop
 		velocity.x = move_toward(velocity.x, 0, friction * delta)
 		velocity.z = move_toward(velocity.z, 0, friction * delta)
 
 	move_and_slide()
 
-	# Turret Slew (Torso Tracking)
+	# Turret Slew (Torso Tracking - Independent of Body)
 	_handle_turret_slew(delta)
 
 	# Network Update

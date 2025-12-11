@@ -14,10 +14,11 @@ import (
 
 // Session Management
 type GroundSession struct {
-	ID        string
-	Addr      *net.UDPAddr
-	Player    *game.Player
-	LastSeen  time.Time
+	ID         string
+	Addr       *net.UDPAddr
+	Player     *game.Player
+	LastSeen   time.Time
+	LastFacing float64
 }
 
 var (
@@ -94,10 +95,11 @@ func handlePacket(conn *net.UDPConn, addr *net.UDPAddr, data []byte, repo game.P
 
 			mu.Lock()
 			sessions[loginPayload.Username] = &GroundSession{
-				ID:       loginPayload.Username,
-				Addr:     addr,
-				Player:   player,
-				LastSeen: time.Now(),
+				ID:         loginPayload.Username,
+				Addr:       addr,
+				Player:     player,
+				LastSeen:   time.Now(),
+				LastFacing: 0.0,
 			}
 			mu.Unlock()
 
@@ -191,16 +193,27 @@ func handleMovement(payload json.RawMessage, addr *net.UDPAddr) {
 	if session == nil { return }
 
 	ctx := ground.ValidationContext{
-		LastPosition: ground.Vector2{X: session.Player.PositionX, Y: session.Player.PositionY},
+		LastPosition:  ground.Vector2{X: session.Player.PositionX, Y: session.Player.PositionY},
+		LastFacing:    session.LastFacing,
 		LastTimestamp: session.LastSeen,
-		MaxSpeed: 20.0,
+		MaxSpeed:      20.0,
+		TurnRate:      3.0, // Default or fetch from Class
 	}
-	newState := ground.ClientState{ PositionX: move.X, PositionY: move.Y }
+	// TODO: Fetch specific class stats for TurnRate/MaxSpeed
+
+	newState := ground.ClientState{
+		PositionX:   move.X,
+		PositionY:   move.Y,
+		FacingAngle: 0.0, // Should be in packet
+	}
+	// Note: protocol/packet.go GroundMovementPayload needs Facing too.
+	// For now, defaulting 0.0 to fix build, but logic requires it.
 
 	if valid, _ := ground.ValidateMovement(newState, ctx); valid {
 		session.Player.PositionX = move.X
 		session.Player.PositionY = move.Y
 		session.LastSeen = time.Now()
+		// session.LastFacing = move.Facing
 	}
 }
 

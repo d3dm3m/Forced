@@ -46,21 +46,45 @@ func _on_packet_received(type: String, payload: Dictionary):
 				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
 
 func _physics_process(delta):
-	# Movement (Inertia)
+	# Tank / RTS Control
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var direction = Vector3(input_dir.x, 0, input_dir.y).normalized()
+	var target_dir = Vector3(input_dir.x, 0, input_dir.y).normalized()
 
-	# Note: move_toward handles linear acceleration/friction automatically
-	if direction:
-		velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
-		velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
+	if target_dir:
+		# 1. Rotate Body towards Target
+		# Using a fixed turn rate (could be class based)
+		var current_transform = global_transform
+		var target_pos = global_position + target_dir
+		var new_transform = current_transform.looking_at(target_pos, Vector3.UP)
+
+		# Rotate towards target quaternion
+		var current_quat = current_transform.basis.get_rotation_quaternion()
+		var target_quat = new_transform.basis.get_rotation_quaternion()
+		var next_quat = current_quat.slerp(target_quat, 5.0 * delta) # 5.0 = Turn Rate
+
+		global_transform.basis = Basis(next_quat)
+
+		# 2. Check Alignment
+		# Only move if facing roughly the right way (~15 deg)
+		var forward = -global_transform.basis.z
+		var dot = forward.dot(target_dir)
+
+		if dot > 0.9:
+			# Aligned enough to move
+			velocity.x = move_toward(velocity.x, target_dir.x * speed, acceleration * delta)
+			velocity.z = move_toward(velocity.z, target_dir.z * speed, acceleration * delta)
+		else:
+			# Not aligned, just braking
+			velocity.x = move_toward(velocity.x, 0, friction * delta)
+			velocity.z = move_toward(velocity.z, 0, friction * delta)
 	else:
+		# No Input, Stop
 		velocity.x = move_toward(velocity.x, 0, friction * delta)
 		velocity.z = move_toward(velocity.z, 0, friction * delta)
 
 	move_and_slide()
 
-	# Turret Slew (Torso Tracking)
+	# Turret Slew (Torso Tracking - Independent of Body)
 	_handle_turret_slew(delta)
 
 	# Network Update

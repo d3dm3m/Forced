@@ -2,7 +2,7 @@ extends Node3D
 
 @export var target_path: NodePath
 @export var smooth_speed: float = 5.0
-@export var offset: Vector3 = Vector3(20, 20, 20) # High up and isometric
+@export var offset: Vector3 = Vector3(20, 30, 20) # High and steep (RTS)
 
 var target: Node3D
 var camera: Camera3D
