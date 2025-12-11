@@ -64,6 +64,7 @@ type Player struct {
 	Solium        int            `json:"solium"`         // Currency
 	Skills        map[string]int `json:"skills"`         // Ship/Space Skills
 	CurrentHealth float64        `json:"current_health"` // Ship Health (Space) or Player Health (Ground)
+	SystemID      string         `json:"system_id"`      // Current Star System (e.g. "Sol-0")
 	CreatedAt     time.Time      `json:"created_at"`
 }
 
@@ -172,9 +173,12 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 	// Default Health (Safe Value)
 	defaultHealth := 1000.0
 
+	// Default System
+	defaultSystem := "Sol-0"
+
 	query := `
-		INSERT INTO players (username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO players (username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health, system_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, created_at
 	`
 
@@ -189,12 +193,13 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 		Solium:        defaultSolium,
 		Skills:        defaultSkills,
 		CurrentHealth: defaultHealth,
+		SystemID:      defaultSystem,
 	}
 
 	err = db.Pool.QueryRow(context.Background(), query,
 		username, classID, defaultX, defaultY,
 		string(inventoryJson), string(shipJson), string(groundGearJson),
-		defaultSolium, string(skillsJson), defaultHealth,
+		defaultSolium, string(skillsJson), defaultHealth, defaultSystem,
 	).Scan(&p.ID, &p.CreatedAt)
 
 	if err != nil {
@@ -206,7 +211,7 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 
 func (r *PostgresPlayerRepository) LoadPlayer(username string) (*Player, error) {
 	query := `
-		SELECT id, username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health, created_at
+		SELECT id, username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health, system_id, created_at
 		FROM players
 		WHERE username = $1
 	`
@@ -229,6 +234,7 @@ func (r *PostgresPlayerRepository) LoadPlayer(username string) (*Player, error) 
 		&p.Solium,
 		&skillsBytes,
 		&p.CurrentHealth,
+		&p.SystemID,
 		&p.CreatedAt,
 	)
 
@@ -295,8 +301,8 @@ func (r *PostgresPlayerRepository) SavePlayerState(player *Player) error {
 
 	query := `
 		UPDATE players
-		SET position_x = $1, position_y = $2, inventory = $3, ship_layout = $4, ground_gear = $5, solium = $6, skills = $7, current_health = $8
-		WHERE id = $9
+		SET position_x = $1, position_y = $2, inventory = $3, ship_layout = $4, ground_gear = $5, solium = $6, skills = $7, current_health = $8, system_id = $9
+		WHERE id = $10
 	`
 
 	_, err = db.Pool.Exec(context.Background(), query,
@@ -308,6 +314,7 @@ func (r *PostgresPlayerRepository) SavePlayerState(player *Player) error {
 		player.Solium,
 		string(skillsJson),
 		player.CurrentHealth,
+		player.SystemID,
 		player.ID,
 	)
 

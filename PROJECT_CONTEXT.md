@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 05:10:24
+**Last Updated:** 2025-12-11 06:01:52
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -81,6 +81,7 @@ graph TD
 - [x] **Sprint 15 (Integration):** Wired `MarketService` and `SurgeryService` to frontend UI (`MarketWindow`, `SurgeryWindow`).
 - [x] **Sprint 16 (Ground):** Established Ground Gameplay Loop (20Hz UDP, Validation, Broadcasting).
 - [x] **Sprint 17 (Tether):** Implemented Ground Persistence and Hangar Handoff trigger.
+- [ ] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.
 
 ## The Macro-Scale Architecture (Planned)
 * **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.
@@ -93,7 +94,7 @@ graph TD
 ### Technical Debt & Future Focus
 - [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.
 - [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.
-- [ ] **Space Core Combat Math:** Verify and tune the Hard Scifi physics implementation (Angular Ballistics, Sig Analysis).
+- [x] **Space Core Combat Math:** Verify and tune the Hard Scifi physics implementation (Angular Ballistics, Sig Analysis).
 - [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).
 
 ## Directory Tree
@@ -121,6 +122,7 @@ graph TD
                 db.go
             game/
                 architecture.go
+                gatekeeper.go
                 combat.go
                 mechanics.go
                 services_test.go
@@ -194,7 +196,7 @@ graph TD
 - **.sum**: 1
 - **.json**: 2
 - **.sql**: 5
-- **.go**: 22
+- **.go**: 23
 - **.gdshader**: 1
 - **.gd**: 15
 
@@ -422,6 +424,18 @@ if __name__ == "__main__":
       "capacitor": 100,
       "high_slots": 2
     },
+    "sensor_cross_section": 50.0,
+    "capacitor_capacity": 500.0,
+    "capacitor_recharge": 150.0,
+    "shield_hp": 800.0,
+    "armor_hp": 600.0,
+    "hull_hp": 500.0,
+    "resistances": {
+        "em": 0.0,
+        "thermal": 0.2,
+        "kinetic": 0.4,
+        "explosive": 0.5
+    },
     "description": "Standard USF Light Frigate."
   },
   {
@@ -434,6 +448,18 @@ if __name__ == "__main__":
       "base_shield": 300,
       "capacitor": 200,
       "high_slots": 4
+    },
+    "sensor_cross_section": 200.0,
+    "capacitor_capacity": 1500.0,
+    "capacitor_recharge": 400.0,
+    "shield_hp": 500.0,
+    "armor_hp": 1000.0,
+    "hull_hp": 2500.0,
+    "resistances": {
+        "em": 0.5,
+        "thermal": 0.2,
+        "kinetic": 0.1,
+        "explosive": 0.1
     },
     "description": "Concord Medium Cruiser. Organic hull regeneration."
   },
@@ -448,10 +474,21 @@ if __name__ == "__main__":
       "capacitor": 150,
       "high_slots": 1
     },
+    "sensor_cross_section": 300.0,
+    "capacitor_capacity": 1000.0,
+    "capacitor_recharge": 200.0,
+    "shield_hp": 400.0,
+    "armor_hp": 500.0,
+    "hull_hp": 3000.0,
+    "resistances": {
+        "em": 0.1,
+        "thermal": 0.1,
+        "kinetic": 0.1,
+        "explosive": 0.1
+    },
     "description": "Syndicate Industrial Ship. Massive cargo hold."
   }
 ]
-
 
 ```
 
@@ -638,6 +675,64 @@ type PlanetHazards struct {
 // WorldState represents dynamic faction influence.
 type WorldState struct {
 	FactionInfluence map[string]float64 `json:"faction_influence"`
+}
+
+```
+
+### ./server/internal/game/gatekeeper.go
+```go
+package game
+
+import (
+	"fmt"
+	"github.com/google/uuid"
+)
+
+// RedisGatekeeper handles cross-server travel and system routing.
+// For Sprint 18 MVP, this is a stubbed implementation backed by hardcoded values.
+type RedisGatekeeper struct {
+	// In future, this would hold a Redis client to query the 'gatekeeper:routes' hash.
+}
+
+func NewRedisGatekeeper() *RedisGatekeeper {
+	return &RedisGatekeeper{}
+}
+
+// GetServerForSystem returns the websocket/udp URL for the server hosting the given system.
+// Currently hardcoded to localhost for the Twin-Core MVP.
+func (g *RedisGatekeeper) GetServerForSystem(systemID string) (string, error) {
+	// Mock Routing Table
+	routes := map[string]string{
+		"Sol-0":      "ws://localhost:8080/ws",
+		"Eden's Rot": "ws://localhost:8081/ws", // Hypothetical Shard 2
+	}
+
+	if url, ok := routes[systemID]; ok {
+		return url, nil
+	}
+
+	// Fallback for MVP
+	return "ws://localhost:8080/ws", nil
+}
+
+// RegisterUserTransfer initiates a handoff sequence.
+// It generates a one-time token that the destination server will validate.
+func (g *RedisGatekeeper) RegisterUserTransfer(userID string, targetServerID string) (string, error) {
+	// 1. Validate User State (e.g. not in combat)
+	// (Skipped for MVP)
+
+	// 2. Generate Token
+	// In a real implementation, this would use `game.GenerateTransferToken` logic
+	// but store it in a globally accessible Redis key like `transfer:{token}`
+	// that the Target Server can read.
+
+	// For this stub, we simulate success.
+	token := uuid.New().String()
+
+	// Log the intent (Real impl would write to Redis)
+	fmt.Printf("Gatekeeper: Registered transfer for %s to %s. Token: %s\n", userID, targetServerID, token)
+
+	return token, nil
 }
 
 ```
@@ -2019,6 +2114,7 @@ type Player struct {
 	Solium        int            `json:"solium"`         // Currency
 	Skills        map[string]int `json:"skills"`         // Ship/Space Skills
 	CurrentHealth float64        `json:"current_health"` // Ship Health (Space) or Player Health (Ground)
+	SystemID      string         `json:"system_id"`      // Current Star System (e.g. "Sol-0")
 	CreatedAt     time.Time      `json:"created_at"`
 }
 
@@ -2127,9 +2223,12 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 	// Default Health (Safe Value)
 	defaultHealth := 1000.0
 
+	// Default System
+	defaultSystem := "Sol-0"
+
 	query := `
-		INSERT INTO players (username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO players (username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health, system_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, created_at
 	`
 
@@ -2144,12 +2243,13 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 		Solium:        defaultSolium,
 		Skills:        defaultSkills,
 		CurrentHealth: defaultHealth,
+		SystemID:      defaultSystem,
 	}
 
 	err = db.Pool.QueryRow(context.Background(), query,
 		username, classID, defaultX, defaultY,
 		string(inventoryJson), string(shipJson), string(groundGearJson),
-		defaultSolium, string(skillsJson), defaultHealth,
+		defaultSolium, string(skillsJson), defaultHealth, defaultSystem,
 	).Scan(&p.ID, &p.CreatedAt)
 
 	if err != nil {
@@ -2161,7 +2261,7 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 
 func (r *PostgresPlayerRepository) LoadPlayer(username string) (*Player, error) {
 	query := `
-		SELECT id, username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health, created_at
+		SELECT id, username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health, system_id, created_at
 		FROM players
 		WHERE username = $1
 	`
@@ -2184,6 +2284,7 @@ func (r *PostgresPlayerRepository) LoadPlayer(username string) (*Player, error) 
 		&p.Solium,
 		&skillsBytes,
 		&p.CurrentHealth,
+		&p.SystemID,
 		&p.CreatedAt,
 	)
 
@@ -2250,8 +2351,8 @@ func (r *PostgresPlayerRepository) SavePlayerState(player *Player) error {
 
 	query := `
 		UPDATE players
-		SET position_x = $1, position_y = $2, inventory = $3, ship_layout = $4, ground_gear = $5, solium = $6, skills = $7, current_health = $8
-		WHERE id = $9
+		SET position_x = $1, position_y = $2, inventory = $3, ship_layout = $4, ground_gear = $5, solium = $6, skills = $7, current_health = $8, system_id = $9
+		WHERE id = $10
 	`
 
 	_, err = db.Pool.Exec(context.Background(), query,
@@ -2263,6 +2364,7 @@ func (r *PostgresPlayerRepository) SavePlayerState(player *Player) error {
 		player.Solium,
 		string(skillsJson),
 		player.CurrentHealth,
+		player.SystemID,
 		player.ID,
 	)
 

@@ -10,6 +10,18 @@
       "capacitor": 100,
       "high_slots": 2
     },
+    "sensor_cross_section": 50.0,
+    "capacitor_capacity": 500.0,
+    "capacitor_recharge": 150.0,
+    "shield_hp": 800.0,
+    "armor_hp": 600.0,
+    "hull_hp": 500.0,
+    "resistances": {
+        "em": 0.0,
+        "thermal": 0.2,
+        "kinetic": 0.4,
+        "explosive": 0.5
+    },
     "description": "Standard USF Light Frigate."
   },
   {
@@ -23,6 +35,18 @@
       "capacitor": 200,
       "high_slots": 4
     },
+    "sensor_cross_section": 200.0,
+    "capacitor_capacity": 1500.0,
+    "capacitor_recharge": 400.0,
+    "shield_hp": 500.0,
+    "armor_hp": 1000.0,
+    "hull_hp": 2500.0,
+    "resistances": {
+        "em": 0.5,
+        "thermal": 0.2,
+        "kinetic": 0.1,
+        "explosive": 0.1
+    },
     "description": "Concord Medium Cruiser. Organic hull regeneration."
   },
   {
@@ -35,6 +59,18 @@
       "base_shield": 200,
       "capacitor": 150,
       "high_slots": 1
+    },
+    "sensor_cross_section": 300.0,
+    "capacitor_capacity": 1000.0,
+    "capacitor_recharge": 200.0,
+    "shield_hp": 400.0,
+    "armor_hp": 500.0,
+    "hull_hp": 3000.0,
+    "resistances": {
+        "em": 0.1,
+        "thermal": 0.1,
+        "kinetic": 0.1,
+        "explosive": 0.1
     },
     "description": "Syndicate Industrial Ship. Massive cargo hold."
   }
