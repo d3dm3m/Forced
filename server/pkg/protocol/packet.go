@@ -26,6 +26,11 @@ type BuyItemPayload struct {
 	ItemID string `json:"item_id"`
 }
 
+type LoginSuccessPayload struct {
+	Message    string      `json:"message"`
+	GroundGear interface{} `json:"ground_gear"`
+}
+
 type GraftOrganPayload struct {
 	InventoryIndex int    `json:"inventory_index"`
 	SlotType       string `json:"slot_type"`

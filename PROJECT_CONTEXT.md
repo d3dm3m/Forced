@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 00:05:24
+**Last Updated:** 2025-12-11 00:47:38
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -91,7 +91,7 @@ graph TD
 * **Legacy (Account Separation):** The `accounts` table stores permanent data (Cosmetics, Legacy Currency) separate from the wipeable `players` table.
 
 ### Technical Debt & Future Focus
-- [ ] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.
+- [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.
 - [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.
 - [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).
 
@@ -2497,6 +2497,11 @@ type BuyItemPayload struct {
 	ItemID string `json:"item_id"`
 }
 
+type LoginSuccessPayload struct {
+	Message    string      `json:"message"`
+	GroundGear interface{} `json:"ground_gear"`
+}
+
 type GraftOrganPayload struct {
 	InventoryIndex int    `json:"inventory_index"`
 	SlotType       string `json:"slot_type"`
@@ -3054,7 +3059,12 @@ func handlePacket(conn *net.UDPConn, addr *net.UDPAddr, data []byte, repo game.P
 			}
 			mu.Unlock()
 
-			response := protocol.Packet{ Type: "LOGIN_SUCCESS", Payload: json.RawMessage(`{"message":"Logged in"}`) }
+			loginSuccess := protocol.LoginSuccessPayload{
+				Message:    "Logged in",
+				GroundGear: player.GroundGear,
+			}
+			payloadBytes, _ := json.Marshal(loginSuccess)
+			response := protocol.Packet{ Type: "LOGIN_SUCCESS", Payload: payloadBytes }
 			sendPacket(conn, addr, response)
 		}
 
@@ -4280,6 +4290,7 @@ func _handle_packet(data: Dictionary):
 		"LOGIN_SUCCESS":
 			print("NetworkManager: Login Success")
 			emit_signal("connected_to_server")
+			emit_signal("packet_received", type, payload) # Ensure logic sees this too
 		"PACKET_TYPE_SANITY_UPDATE":
 			var val = payload.get("sanity", 100.0)
 			emit_signal("sanity_changed", val)
@@ -4664,6 +4675,17 @@ func _ready():
 
 	# Find Camera (Assuming CameraRig is sibling or child, for now grab viewport camera)
 	camera = get_viewport().get_camera_3d()
+
+	# Listen for Gear
+	NetworkManager.connect("packet_received", _on_packet_received)
+
+func _on_packet_received(type: String, payload: Dictionary):
+	if type == "LOGIN_SUCCESS":
+		var gear = payload.get("ground_gear", {})
+		if gear.has("primary_weapon"):
+			var weapon = gear["primary_weapon"]
+			if weapon:
+				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
 
 func _physics_process(delta):
 	# Movement

@@ -132,7 +132,7 @@ def main():
         out.write("* **Legacy (Account Separation):** The `accounts` table stores permanent data (Cosmetics, Legacy Currency) separate from the wipeable `players` table.\n\n")
 
         out.write("### Technical Debt & Future Focus\n")
-        out.write("- [ ] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.\n")
+        out.write("- [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.\n")
         out.write("- [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.\n")
         out.write("- [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).\n\n")
 

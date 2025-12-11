@@ -99,7 +99,12 @@ func handlePacket(conn *net.UDPConn, addr *net.UDPAddr, data []byte, repo game.P
 			}
 			mu.Unlock()
 
-			response := protocol.Packet{ Type: "LOGIN_SUCCESS", Payload: json.RawMessage(`{"message":"Logged in"}`) }
+			loginSuccess := protocol.LoginSuccessPayload{
+				Message:    "Logged in",
+				GroundGear: player.GroundGear,
+			}
+			payloadBytes, _ := json.Marshal(loginSuccess)
+			response := protocol.Packet{ Type: "LOGIN_SUCCESS", Payload: payloadBytes }
 			sendPacket(conn, addr, response)
 		}
 

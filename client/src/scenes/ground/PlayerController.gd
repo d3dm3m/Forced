@@ -22,6 +22,17 @@ func _ready():
 	# Find Camera (Assuming CameraRig is sibling or child, for now grab viewport camera)
 	camera = get_viewport().get_camera_3d()
 
+	# Listen for Gear
+	NetworkManager.connect("packet_received", _on_packet_received)
+
+func _on_packet_received(type: String, payload: Dictionary):
+	if type == "LOGIN_SUCCESS":
+		var gear = payload.get("ground_gear", {})
+		if gear.has("primary_weapon"):
+			var weapon = gear["primary_weapon"]
+			if weapon:
+				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
+
 func _physics_process(delta):
 	# Movement
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")

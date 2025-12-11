@@ -65,6 +65,7 @@ func _handle_packet(data: Dictionary):
 		"LOGIN_SUCCESS":
 			print("NetworkManager: Login Success")
 			emit_signal("connected_to_server")
+			emit_signal("packet_received", type, payload) # Ensure logic sees this too
 		"PACKET_TYPE_SANITY_UPDATE":
 			var val = payload.get("sanity", 100.0)
 			emit_signal("sanity_changed", val)
