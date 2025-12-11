@@ -96,3 +96,38 @@ We have removed the artificial division between layers. Combat, Industry, and Ex
 *   **Surgery Loop:** Requires Surgery Bay + Biomass + Connection Minigame.
 *   **Rejection:** Compatibility Score dictates Bleeding/Spasm/Necrosis.
 *   **Sanity:** Low Sanity causes Friendly Fire, Warp Refusal, and Vendor Fear.
+
+## 8. Space Combat Physics (The Math of War)
+
+### Angular Ballistics
+Space combat is not twitch-based; it is calculated based on physics and angular velocities.
+*   **Turret Tracking:** Hit chance is determined by the Weapon Slew Rate versus the Target's Angular Velocity relative to the shooter.
+    *   **Transversal Movement:** High angular velocity (orbiting). Safe.
+    *   **Radial Movement:** Zero angular velocity (burning straight at/away). Dead.
+*   **Formula:** Hit Chance degrades as Angular Velocity exceeds Tracking Speed.
+
+### Volumetric Detonation
+Missiles operate on a different paradigm. They always hit (if in range), but damage is applied based on the explosion's ability to catch the target.
+*   **Explosion Radius vs Signature Radius:** Small targets take less damage from big explosions.
+*   **Explosion Velocity vs Target Velocity:** Fast targets outrun the shockwave.
+
+### Signature Analysis
+Target locking is an active sensor process.
+*   **Sensor Cross-Section (SCS):** The "size" of the ship on radar.
+*   **Scan Resolution:** The speed of the targeting sensors.
+*   **Lock Time:** Defined by `Scanner Resolution / Target SCS`. Active modules (MWD, Jammers) bloom the SCS, making the ship faster to lock.
+
+### Capacitor Warfare
+Energy is life. The Capacitor powers shields, weapons, and propulsion.
+*   **Recharge:** Non-linear. Recharge rate peaks at ~30% capacity and drops off at 0% and 100%.
+*   **Warfare:** Energy Neutralizers can drain enemy caps, leaving them dead in space.
+
+### Tackling
+Preventing escape is a dedicated role.
+*   **Warp Jammers:** Prevent the target from entering warp.
+*   **Webifiers:** Artificial gravity drag. Reduces target speed, which lowers their Transversal, making them easier to hit.
+
+### Layered Mitigation
+*   **Shields:** Regenerating, weak to EM. First line of defense.
+*   **Armor:** Static HP, high Kinetic resistance. Reduces speed when heavy plates are installed.
+*   **Hull:** The structure. No resistances. When this hits 0, the ship explodes.

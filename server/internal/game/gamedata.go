@@ -34,6 +34,15 @@ type ShipDefinition struct {
 	Class       string                 `json:"class"`
 	Stats       map[string]interface{} `json:"stats"`
 	Description string                 `json:"description"`
+
+	// Hard Scifi Combat Stats
+	SensorCrossSection    float64            `json:"sensor_cross_section"` // SCS in m^2
+	CapacitorCapacity     float64            `json:"capacitor_capacity"`   // GJ
+	CapacitorRechargeRate float64            `json:"capacitor_recharge"`   // Time to recharge or Peak Rate
+	ShieldHP              float64            `json:"shield_hp"`
+	ArmorHP               float64            `json:"armor_hp"`
+	HullHP                float64            `json:"hull_hp"`
+	Resistances           map[string]float64 `json:"resistances"` // EM, Thermal, Kinetic, Explosive
 }
 
 // ItemDefinition mirrors the Item Definitions

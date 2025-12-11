@@ -134,6 +134,7 @@ def main():
         out.write("### Technical Debt & Future Focus\n")
         out.write("- [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.\n")
         out.write("- [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.\n")
+        out.write("- [ ] **Space Core Combat Math:** Verify and tune the Hard Scifi physics implementation (Angular Ballistics, Sig Analysis).\n")
         out.write("- [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).\n\n")
 
         out.write("## Directory Tree\n\n```\n")

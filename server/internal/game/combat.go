@@ -148,3 +148,84 @@ func (pm *ProjectileManager) UpdateSimulation(dt float64) []*Projectile {
 
 	return impacts
 }
+
+// -------------------------------------------------------------------------
+// Hard Scifi Combat Math
+// -------------------------------------------------------------------------
+
+// CalculateTurretTracking determines the hit chance of a turret based on angular velocity.
+// turretTracking: The weapon's tracking speed (rad/sec).
+// targetRadius: The target's signature radius (m).
+// distance: Range to target (m).
+// transversalVelocity: Speed of target perpendicular to the shooter (m/s).
+//
+// Formula: Chance = 0.5 ^ ( ( (Transversal / Range) / Tracking ) ^ 2 )
+// Note: This matches standard "EVE-like" tracking mechanics.
+func CalculateTurretTracking(turretTracking float64, targetRadius float64, distance float64, transversalVelocity float64) float64 {
+	if distance <= 0 {
+		return 1.0 // Point blank
+	}
+
+	angularVelocity := transversalVelocity / distance // rad/sec
+
+	// Standard Tracking Formula
+	// The exponent part compares the angular tracking demand vs the gun's capability.
+	// We use targetRadius usually to mitigate tracking (Signature Resolution / Target Radius).
+	// Assuming `turretTracking` includes the resolution factor or is a raw score.
+	// Prompt says: "Hit chance = Weapon Slew Rate vs Target Angular Velocity".
+	// Let's implement the canonical formula:
+	// Chance = 0.5 ^ ( (Angular / Tracking) * (SignatureResolution / TargetRadius) ) ^ 2
+	// For this MVP function, we lack SignatureResolution input, so we assume 1:1 or ignore it,
+	// OR we assume turretTracking is the *effective* tracking against a standard target.
+	// We will follow the prompt's implied simple comparison but use the curve.
+
+	// Simple: Chance = 0.5 ^ ( (Angular / Tracking) ^ 2 )
+	exponent := math.Pow(angularVelocity/turretTracking, 2)
+	chance := math.Pow(0.5, exponent)
+
+	return chance
+}
+
+// CalculateMissileDamage calculates applied damage based on explosion physics.
+// baseDamage: Warhead damage.
+// explosionRadius: Size of the explosion (m).
+// explosionVel: Expansion velocity of the explosion (m/s).
+// targetRadius: Target's signature radius (m).
+// targetVel: Target's speed (m/s).
+func CalculateMissileDamage(baseDamage float64, explosionRadius float64, explosionVel float64, targetRadius float64, targetVel float64) float64 {
+	// Factor 1: Signature (Small targets take less from big booms)
+	sigFactor := targetRadius / explosionRadius
+
+	// Factor 2: Velocity (Fast targets outrun the boom)
+	// Formula: (ExplosionVel / TargetVel) * (TargetRadius / ExplosionRadius)
+	// We take the minimum of 1.0, SigFactor, and VelFactor.
+
+	// Avoid div by zero
+	if targetVel <= 0 {
+		targetVel = 0.001
+	}
+	if explosionRadius <= 0 {
+		explosionRadius = 1.0
+	}
+
+	velFactor := (explosionVel / targetVel) * sigFactor
+
+	// Applied factor is the smallest of: 1.0 (Full hit), SigFactor, or VelFactor
+	appliedFactor := math.Min(1.0, math.Min(sigFactor, velFactor))
+
+	return baseDamage * appliedFactor
+}
+
+// CalculateLockTime determines how long it takes to lock a target.
+// sourceScanRes: The attacker's sensor strength/resolution (mm).
+// targetSCS: The target's sensor cross-section (m^2).
+//
+// Prompt Formula: Lock Time = Scanner Res / Target SCS
+func CalculateLockTime(sourceScanRes float64, targetSCS float64) float64 {
+	if targetSCS <= 0 {
+		return 999.0 // Cannot lock stealth target
+	}
+	// Per prompt instruction.
+	// Note: This implies that higher ScanRes makes locking SLOWER, or ScanRes is a "Scan Delay" value.
+	return sourceScanRes / targetSCS
+}
