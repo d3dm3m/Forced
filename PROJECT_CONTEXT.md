@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 06:13:44
+**Last Updated:** 2025-12-11 06:35:57
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -94,7 +94,7 @@ graph TD
 ### Technical Debt & Future Focus
 - [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.
 - [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.
-- [x] **Space Core Combat Math:** Verify and tune the Hard Scifi physics implementation (Angular Ballistics, Sig Analysis).
+- [x] **Space Core Combat Logic Integration:** Wired up Angular Ballistics and Signature Analysis to the main game loop.
 - [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.
 - [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).
 
@@ -843,6 +843,47 @@ func (pm *ProjectileManager) SpawnProjectile(
 
 	pm.ActiveProjectiles[id] = proj
 	return proj
+}
+
+// ResolveSpaceTurretFire calculates hit chance and damage for space combat.
+func (pm *ProjectileManager) ResolveSpaceTurretFire(attacker *Player, target *Player, distance float64) (bool, float64) {
+	// 1. Get Attacker Stats
+	attackerStats := CalculateShipStats(attacker)
+	// Proxy: Use Speed as Slew Rate or default to 0.5 rad/s if missing specific stat
+	// Ideally we'd have a specific "TrackingSpeed" stat on the gun/ship.
+	// Using hardcoded default for MVP integration as per instructions.
+	trackingSpeed := 0.5
+
+	// 2. Get Target Stats
+	targetStats := CalculateShipStats(target)
+	// Proxy: We need Signature Radius. We'll use a derived value or default.
+	// Since CalculateShipStats doesn't explicitly return SigRadius in DerivedStats (yet),
+	// we will default it or pull from base ships if we had the ID.
+	// For now, let's assume standard Frigate size (50.0).
+	targetSig := 50.0
+
+	// 3. Simulate Transversal
+	// Random 0-100 m/s
+	transversal := pm.rng.Float64() * 100.0
+
+	// 4. Calculate Chance
+	chance := CalculateTurretTracking(trackingSpeed, targetSig, distance, transversal)
+
+	// 5. Roll
+	hit := pm.rng.Float64() < chance
+	damage := 0.0
+
+	if hit {
+		// Base damage (e.g. 50) modified by nothing for now (Linear hit is binary usually, or graze)
+		// We'll return full damage for Hit.
+		// Check Attacker gun damage? We assume standard Laser Cannon (50.0) from Items.
+		damage = 50.0
+
+		// Apply modifiers from attacker stats?
+		// damage *= attackerStats.DamageMultiplier (if it existed)
+	}
+
+	return hit, damage
 }
 
 // UpdateSimulation ticks the projectiles. Returns list of impacts.
@@ -3107,14 +3148,31 @@ func handleSpaceAttack(player *game.Player) *protocol.Packet {
 	// Physics uses Vector3. Let's default Z=0.
 	startX, startY, startZ := player.PositionX, player.PositionY, 0.0
 	targetX, targetY, targetZ := player.PositionX + 100, player.PositionY, 0.0
+	distance := 100.0
+
+	// Create Mock Target
+	mockTarget := &game.Player{
+		ID: "dummy_target",
+		GroundGear: game.GroundGear{}, // Empty gear
+		// Ship layout could be populated if ResolveSpaceTurretFire inspected slots deeply
+	}
 
 	mu.Lock()
+
+	// Use new Hard Scifi Logic
+	hit, _ := projMgr.ResolveSpaceTurretFire(player, mockTarget, distance)
+	outcome := "Miss"
+	if hit {
+		outcome = "Hit"
+	}
+
+	// Spawn Projectile (Linear Turret Shot)
 	proj := projMgr.SpawnProjectile(
 		player.ID, "dummy_target",
 		startX, startY, startZ,
 		targetX, targetY, targetZ,
-		50.0, 20.0, 1.0,
-		protocol.BEHAVIOR_MISSILE, "Hit",
+		200.0, 50.0, 0.0, // High speed for turret, no turn rate
+		protocol.BEHAVIOR_LINEAR, outcome,
 	)
 	mu.Unlock()
 

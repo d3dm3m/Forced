@@ -103,6 +103,49 @@ func (pm *ProjectileManager) SpawnProjectile(
 	return proj
 }
 
+// ResolveSpaceTurretFire calculates hit chance and damage for space combat.
+func (pm *ProjectileManager) ResolveSpaceTurretFire(attacker *Player, target *Player, distance float64) (bool, float64) {
+	// 1. Get Attacker Stats
+	attackerStats := CalculateShipStats(attacker)
+	// Proxy: Use SensorRange as Slew Rate proxy (high sensor = fast lock/track)
+	// Normalized: 100 sensor range -> 1.0 rad/s tracking
+	trackingSpeed := attackerStats.SensorRange / 100.0
+	if trackingSpeed <= 0 {
+		trackingSpeed = 0.5
+	}
+
+	// 2. Get Target Stats
+	// targetStats := CalculateShipStats(target) // Unused until we map SigRadius
+	// Proxy: We need Signature Radius. We'll use a derived value or default.
+	// Since CalculateShipStats doesn't explicitly return SigRadius in DerivedStats (yet),
+	// we will default it or pull from base ships if we had the ID.
+	// For now, let's assume standard Frigate size (50.0).
+	targetSig := 50.0
+
+	// 3. Simulate Transversal
+	// Random 0-100 m/s
+	transversal := pm.rng.Float64() * 100.0
+
+	// 4. Calculate Chance
+	chance := CalculateTurretTracking(trackingSpeed, targetSig, distance, transversal)
+
+	// 5. Roll
+	hit := pm.rng.Float64() < chance
+	damage := 0.0
+
+	if hit {
+		// Base damage (e.g. 50) modified by nothing for now (Linear hit is binary usually, or graze)
+		// We'll return full damage for Hit.
+		// Check Attacker gun damage? We assume standard Laser Cannon (50.0) from Items.
+		damage = 50.0
+
+		// Apply modifiers from attacker stats?
+		// damage *= attackerStats.DamageMultiplier (if it existed)
+	}
+
+	return hit, damage
+}
+
 // UpdateSimulation ticks the projectiles. Returns list of impacts.
 func (pm *ProjectileManager) UpdateSimulation(dt float64) []*Projectile {
 	var impacts []*Projectile

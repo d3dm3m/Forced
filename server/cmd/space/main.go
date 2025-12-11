@@ -300,14 +300,31 @@ func handleSpaceAttack(player *game.Player) *protocol.Packet {
 	// Physics uses Vector3. Let's default Z=0.
 	startX, startY, startZ := player.PositionX, player.PositionY, 0.0
 	targetX, targetY, targetZ := player.PositionX + 100, player.PositionY, 0.0
+	distance := 100.0
+
+	// Create Mock Target
+	mockTarget := &game.Player{
+		ID: "dummy_target",
+		GroundGear: game.GroundGear{}, // Empty gear
+		// Ship layout could be populated if ResolveSpaceTurretFire inspected slots deeply
+	}
 
 	mu.Lock()
+
+	// Use new Hard Scifi Logic
+	hit, _ := projMgr.ResolveSpaceTurretFire(player, mockTarget, distance)
+	outcome := "Miss"
+	if hit {
+		outcome = "Hit"
+	}
+
+	// Spawn Projectile (Linear Turret Shot)
 	proj := projMgr.SpawnProjectile(
 		player.ID, "dummy_target",
 		startX, startY, startZ,
 		targetX, targetY, targetZ,
-		50.0, 20.0, 1.0,
-		protocol.BEHAVIOR_MISSILE, "Hit",
+		200.0, 50.0, 0.0, // High speed for turret, no turn rate
+		protocol.BEHAVIOR_LINEAR, outcome,
 	)
 	mu.Unlock()
 
