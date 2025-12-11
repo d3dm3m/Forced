@@ -14,7 +14,12 @@
       "mass": 200.0,
       "slew_rate": 2.0,
       "scan_resolution": 100.0,
-      "signature_radius": 10.0
+      "signature_radius": 10.0,
+      "turn_rate": 0.6,
+      "cast_point": 0.3,
+      "backswing": 0.5,
+      "vision_range_day": 1200,
+      "vision_range_night": 800
     },
     "slots": 4
   },
@@ -33,7 +38,12 @@
       "mass": 150.0,
       "slew_rate": 4.0,
       "scan_resolution": 200.0,
-      "signature_radius": 5.0
+      "signature_radius": 5.0,
+      "turn_rate": 0.75,
+      "cast_point": 0.3,
+      "backswing": 0.4,
+      "vision_range_day": 1200,
+      "vision_range_night": 800
     },
     "slots": 6
   },
@@ -52,7 +62,12 @@
       "mass": 80.0,
       "slew_rate": 8.0,
       "scan_resolution": 400.0,
-      "signature_radius": 2.0
+      "signature_radius": 2.0,
+      "turn_rate": 0.9,
+      "cast_point": 0.2,
+      "backswing": 0.3,
+      "vision_range_day": 1400,
+      "vision_range_night": 1000
     },
     "slots": 4
   },

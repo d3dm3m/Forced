@@ -132,19 +132,31 @@ Preventing escape is a dedicated role.
 *   **Armor:** Static HP, high Kinetic resistance. Reduces speed when heavy plates are installed.
 *   **Hull:** The structure. No resistances. When this hits 0, the ship explodes.
 
-## 9. Ground Combat: Industrial Rigs
-Instead of generic "characters," players pilot heavy Exosuits with distinct weight and control profiles.
+## 9. Tactical Sensor-Link (Ground Combat v2.0)
 
-### Physics Profiles
-*   **The Marine (Iso-Static Dreadnought):** High Inertia, Low Slew Rate. A moving turret.
-*   **The Sapper (Hex-Stabilized Construction):** Medium Inertia, Snap-Locking Slew.
-*   **The Biologist (Vector-Thrust Hazard):** Low Inertia (Instant), High Slew.
+### Entity Physics
+Movement is "Weighty" and deliberate, moving away from twitch-shooters to RTS-style tactical positioning.
+*   **Turn-Rate:** Characters cannot move instantly in a new direction. They must rotate (Turn Rate) to face the target vector before Translation begins.
+*   **Movement Threshold:** Entities only begin moving once facing is within ~15 degrees of the target vector. This makes "kiting" difficult for heavy frames.
 
-### Targeting Sensors
-*   **Threat Signatures:** Marines have high signature radius (auto-taunt).
-*   **Structural Analysis:** Sappers see weak points and grid snaps.
-*   **Bio-Scan:** Biologists have fast scan resolution for triage.
+### Sensor Vision (Fog of War)
+Vision is calculated via Raycast, not simple distance checks.
+*   **Layers:** Ground (0), Catwalk (1), Obstruction (2).
+*   **High Ground Advantage:** High ground sees Low ground freely. Low ground cannot see up to High ground unless they have a spotter or active sensor sweep.
+*   **Occlusion:** Obstacles block vision rays, creating dynamic shadows where enemies can hide.
 
-### Resource Management (Suit Battery)
-*   **Capacitor:** Replaces Mana. Powers shields, weapons, and tools.
-*   **Depletion:** 0% Cap = Immobilization.
+### Action State Machine
+All abilities and attacks follow a rigorous state machine to prevent animation canceling exploits and enforce commitment.
+1.  **Idle:** Ready to act.
+2.  **Windup (Cast Point):** The preparation phase. Can be canceled to bait enemies. Resource is not yet consumed.
+3.  **Active:** The effect occurs (Projectile fired, Heal applied). Resource is burned.
+4.  **Backswing:** The recovery phase. Animation lock prevents moving or attacking immediately, but can be canceled by Move commands in some agile frames.
+
+### Ballistics & Mitigation
+*   **Projectile Entities:** Ranged attacks are physical entities that travel through space. They can be dodged or disjointed (e.g., blinking/teleporting).
+*   **High Ground Defense:** Attacking High Ground from Low Ground incurs a 25% Miss Chance (Uphill Battle).
+
+### Environmental Interaction
+*   **Scrap Piles:** Destructible cover elements scattered in the world.
+    *   **Tactical:** They block vision and pathing.
+    *   **Strategic:** Sapper/Biologist classes can salvage them for "Nanite Repair" or resources.

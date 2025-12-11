@@ -138,6 +138,7 @@ def main():
         out.write("- [x] **Inventory UI:** `InventoryUI.gd` and `SurgeryWindow.gd` now support full Drag-and-Drop interaction.\n")
         out.write("- [x] **Space Core Combat Logic Integration:** Wired up Angular Ballistics and Signature Analysis to the main game loop.\n")
         out.write("- [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.\n")
+        out.write("- [ ] **Ground Core Refactor:** Implement RTS Turn-Rate Physics & Raycast Vision.\n")
         out.write("- [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).\n\n")
 
         out.write("## Directory Tree\n\n```\n")

@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 08:59:43
+**Last Updated:** 2025-12-11 14:01:49
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -97,6 +97,7 @@ graph TD
 - [x] **Inventory UI:** `InventoryUI.gd` and `SurgeryWindow.gd` now support full Drag-and-Drop interaction.
 - [x] **Space Core Combat Logic Integration:** Wired up Angular Ballistics and Signature Analysis to the main game loop.
 - [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.
+- [ ] **Ground Core Refactor:** Implement RTS Turn-Rate Physics & Raycast Vision.
 - [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).
 
 ## Directory Tree
@@ -311,7 +312,12 @@ if __name__ == "__main__":
       "mass": 200.0,
       "slew_rate": 2.0,
       "scan_resolution": 100.0,
-      "signature_radius": 10.0
+      "signature_radius": 10.0,
+      "turn_rate": 0.6,
+      "cast_point": 0.3,
+      "backswing": 0.5,
+      "vision_range_day": 1200,
+      "vision_range_night": 800
     },
     "slots": 4
   },
@@ -330,7 +336,12 @@ if __name__ == "__main__":
       "mass": 150.0,
       "slew_rate": 4.0,
       "scan_resolution": 200.0,
-      "signature_radius": 5.0
+      "signature_radius": 5.0,
+      "turn_rate": 0.75,
+      "cast_point": 0.3,
+      "backswing": 0.4,
+      "vision_range_day": 1200,
+      "vision_range_night": 800
     },
     "slots": 6
   },
@@ -349,7 +360,12 @@ if __name__ == "__main__":
       "mass": 80.0,
       "slew_rate": 8.0,
       "scan_resolution": 400.0,
-      "signature_radius": 2.0
+      "signature_radius": 2.0,
+      "turn_rate": 0.9,
+      "cast_point": 0.2,
+      "backswing": 0.3,
+      "vision_range_day": 1400,
+      "vision_range_night": 1000
     },
     "slots": 4
   },
@@ -3844,22 +3860,34 @@ Preventing escape is a dedicated role.
 *   **Armor:** Static HP, high Kinetic resistance. Reduces speed when heavy plates are installed.
 *   **Hull:** The structure. No resistances. When this hits 0, the ship explodes.
 
-## 9. Ground Combat: Industrial Rigs
-Instead of generic "characters," players pilot heavy Exosuits with distinct weight and control profiles.
+## 9. Tactical Sensor-Link (Ground Combat v2.0)
 
-### Physics Profiles
-*   **The Marine (Iso-Static Dreadnought):** High Inertia, Low Slew Rate. A moving turret.
-*   **The Sapper (Hex-Stabilized Construction):** Medium Inertia, Snap-Locking Slew.
-*   **The Biologist (Vector-Thrust Hazard):** Low Inertia (Instant), High Slew.
+### Entity Physics
+Movement is "Weighty" and deliberate, moving away from twitch-shooters to RTS-style tactical positioning.
+*   **Turn-Rate:** Characters cannot move instantly in a new direction. They must rotate (Turn Rate) to face the target vector before Translation begins.
+*   **Movement Threshold:** Entities only begin moving once facing is within ~15 degrees of the target vector. This makes "kiting" difficult for heavy frames.
 
-### Targeting Sensors
-*   **Threat Signatures:** Marines have high signature radius (auto-taunt).
-*   **Structural Analysis:** Sappers see weak points and grid snaps.
-*   **Bio-Scan:** Biologists have fast scan resolution for triage.
+### Sensor Vision (Fog of War)
+Vision is calculated via Raycast, not simple distance checks.
+*   **Layers:** Ground (0), Catwalk (1), Obstruction (2).
+*   **High Ground Advantage:** High ground sees Low ground freely. Low ground cannot see up to High ground unless they have a spotter or active sensor sweep.
+*   **Occlusion:** Obstacles block vision rays, creating dynamic shadows where enemies can hide.
 
-### Resource Management (Suit Battery)
-*   **Capacitor:** Replaces Mana. Powers shields, weapons, and tools.
-*   **Depletion:** 0% Cap = Immobilization.
+### Action State Machine
+All abilities and attacks follow a rigorous state machine to prevent animation canceling exploits and enforce commitment.
+1.  **Idle:** Ready to act.
+2.  **Windup (Cast Point):** The preparation phase. Can be canceled to bait enemies. Resource is not yet consumed.
+3.  **Active:** The effect occurs (Projectile fired, Heal applied). Resource is burned.
+4.  **Backswing:** The recovery phase. Animation lock prevents moving or attacking immediately, but can be canceled by Move commands in some agile frames.
+
+### Ballistics & Mitigation
+*   **Projectile Entities:** Ranged attacks are physical entities that travel through space. They can be dodged or disjointed (e.g., blinking/teleporting).
+*   **High Ground Defense:** Attacking High Ground from Low Ground incurs a 25% Miss Chance (Uphill Battle).
+
+### Environmental Interaction
+*   **Scrap Piles:** Destructible cover elements scattered in the world.
+    *   **Tactical:** They block vision and pathing.
+    *   **Strategic:** Sapper/Biologist classes can salvage them for "Nanite Repair" or resources.
 
 ```
 
