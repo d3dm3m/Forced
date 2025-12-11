@@ -20,10 +20,10 @@ func _on_inventory_updated(items: Array):
 		child.queue_free()
 
 	# Populate new items
+	var item_script = preload("res://src/ui/InventoryItem.gd")
+	var idx = 0
 	for item in items:
-		var slot = PanelContainer.new()
-		var label = Label.new()
-		# item is expected to be { "item_id": "...", "count": ... }
-		label.text = str(item.count) + "x\n" + item.item_id
-		slot.add_child(label)
+		var slot = item_script.new()
+		slot.setup(idx, item.item_id, int(item.count))
 		grid.add_child(slot)
+		idx += 1

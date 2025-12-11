@@ -135,7 +135,7 @@ def main():
 
         out.write("### Technical Debt & Future Focus\n")
         out.write("- [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.\n")
-        out.write("- [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.\n")
+        out.write("- [x] **Inventory UI:** `InventoryUI.gd` and `SurgeryWindow.gd` now support full Drag-and-Drop interaction.\n")
         out.write("- [x] **Space Core Combat Logic Integration:** Wired up Angular Ballistics and Signature Analysis to the main game loop.\n")
         out.write("- [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.\n")
         out.write("- [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).\n\n")

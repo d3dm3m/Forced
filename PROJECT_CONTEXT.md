@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 07:13:36
+**Last Updated:** 2025-12-11 08:59:43
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -94,7 +94,7 @@ graph TD
 
 ### Technical Debt & Future Focus
 - [x] **Ground Core Lag:** The `GroundGear` data structures exist on the server but are not used by the Client or Ground Core networking.
-- [ ] **Inventory UI:** `InventoryUI.gd` is basic and does not support drag-and-drop for the Surgery interaction.
+- [x] **Inventory UI:** `InventoryUI.gd` and `SurgeryWindow.gd` now support full Drag-and-Drop interaction.
 - [x] **Space Core Combat Logic Integration:** Wired up Angular Ballistics and Signature Analysis to the main game loop.
 - [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.
 - [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).
@@ -165,11 +165,13 @@ graph TD
                 SanityDistortion.gdshader
         src/
             ui/
+                InventoryItem.gd
                 InventoryUI.gd
                 space/
                     HUD.gd
                     SurgeryWindow.gd
                     DraggableWindow.gd
+                    SurgerySlot.gd
                     MarketWindow.gd
                 ground/
             autoload/
@@ -200,7 +202,7 @@ graph TD
 - **.sql**: 5
 - **.go**: 23
 - **.gdshader**: 1
-- **.gd**: 15
+- **.gd**: 17
 
 ## File Contents
 
@@ -4317,6 +4319,48 @@ void fragment() {
 
 ```
 
+### ./client/src/ui/InventoryItem.gd
+```gd
+extends PanelContainer
+
+var item_index: int = -1
+var item_id: String = ""
+
+func setup(index: int, id: String, count: int):
+	item_index = index
+	item_id = id
+
+	# Clear existing children
+	for child in get_children():
+		child.queue_free()
+
+	# Add Label
+	var label = Label.new()
+	label.text = str(count) + "x\n" + id
+	add_child(label)
+
+	# Visual Style (Basic)
+	custom_minimum_size = Vector2(50, 50)
+
+func _get_drag_data(at_position):
+	if item_index == -1:
+		return null
+
+	var data = {
+		"item_index": item_index,
+		"item_id": item_id
+	}
+
+	# Create Preview
+	var preview = Label.new()
+	preview.text = item_id
+	preview.modulate = Color(1, 1, 1, 0.8)
+	set_drag_preview(preview)
+
+	return data
+
+```
+
 ### ./client/src/ui/InventoryUI.gd
 ```gd
 extends Control
@@ -4341,13 +4385,13 @@ func _on_inventory_updated(items: Array):
 		child.queue_free()
 
 	# Populate new items
+	var item_script = preload("res://src/ui/InventoryItem.gd")
+	var idx = 0
 	for item in items:
-		var slot = PanelContainer.new()
-		var label = Label.new()
-		# item is expected to be { "item_id": "...", "count": ... }
-		label.text = str(item.count) + "x\n" + item.item_id
-		slot.add_child(label)
+		var slot = item_script.new()
+		slot.setup(idx, item.item_id, int(item.count))
 		grid.add_child(slot)
+		idx += 1
 
 
 ```
@@ -4546,39 +4590,28 @@ func _ready():
 	add_child(container)
 
 	# Slot: High 1
-	add_slot_row(container, "High Slot 1", "high_slots", 0)
+	create_slot(container, "High Slot 1", "high_slots", 0)
 	# Slot: Mid 1
-	add_slot_row(container, "Mid Slot 1", "mid_slots", 0)
+	create_slot(container, "Mid Slot 1", "mid_slots", 0)
 	# Slot: Low 1
-	add_slot_row(container, "Low Slot 1", "low_slots", 0)
+	create_slot(container, "Low Slot 1", "low_slots", 0)
 
-	# Note: This UI assumes you want to install the FIRST item in your inventory.
-	# Real UI needs drag-and-drop from Inventory Window.
 	var note = Label.new()
-	note.text = "NOTE: Installs Item #0 from Inventory"
+	note.text = "Drag Items from Inventory"
 	note.modulate = Color(0.7, 0.7, 0.7)
 	container.add_child(note)
 
-func add_slot_row(container, label_text, slot_type, slot_index):
-	var row = HBoxContainer.new()
+func create_slot(container, label_text, slot_type, slot_index):
+	var slot_script = preload("res://src/ui/space/SurgerySlot.gd")
+	var slot = slot_script.new()
+	slot.setup(slot_type, slot_index, label_text)
+	slot.connect("organ_dropped", _on_organ_dropped)
+	container.add_child(slot)
 
-	var label = Label.new()
-	label.text = label_text
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(label)
-
-	var btn = Button.new()
-	btn.text = "GRAFT (Idx 0)"
-	btn.connect("pressed", func(): _on_graft_pressed(slot_type, slot_index))
-	row.add_child(btn)
-
-	container.add_child(row)
-
-func _on_graft_pressed(slot_type, slot_index):
-	print("Grafting Inventory[0] into ", slot_type, "[", slot_index, "]")
-	# Hardcoded to index 0 for MVP testing
+func _on_organ_dropped(inventory_index, slot_type, slot_index):
+	print("Grafting Inventory[", inventory_index, "] into ", slot_type, "[", slot_index, "]")
 	var payload = {
-		"inventory_index": 0,
+		"inventory_index": inventory_index,
 		"slot_type": slot_type,
 		"slot_index": slot_index
 	}
@@ -4605,6 +4638,35 @@ func _gui_input(event):
 
 	if event is InputEventMouseMotion and dragging:
 		global_position = get_global_mouse_position() - drag_offset
+
+```
+
+### ./client/src/ui/space/SurgerySlot.gd
+```gd
+extends PanelContainer
+
+signal organ_dropped(inventory_index: int, slot_type: String, slot_index: int)
+
+var slot_type: String = ""
+var slot_index: int = 0
+
+func setup(type: String, index: int, label_text: String):
+	slot_type = type
+	slot_index = index
+
+	# Basic Visuals
+	custom_minimum_size = Vector2(200, 40)
+
+	var label = Label.new()
+	label.text = label_text + " (Drop Here)"
+	add_child(label)
+
+func _can_drop_data(at_position, data):
+	return data is Dictionary and data.has("item_id")
+
+func _drop_data(at_position, data):
+	if _can_drop_data(at_position, data):
+		emit_signal("organ_dropped", data["item_index"], slot_type, slot_index)
 
 ```
 

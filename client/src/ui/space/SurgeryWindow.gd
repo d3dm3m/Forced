@@ -20,39 +20,28 @@ func _ready():
 	add_child(container)
 
 	# Slot: High 1
-	add_slot_row(container, "High Slot 1", "high_slots", 0)
+	create_slot(container, "High Slot 1", "high_slots", 0)
 	# Slot: Mid 1
-	add_slot_row(container, "Mid Slot 1", "mid_slots", 0)
+	create_slot(container, "Mid Slot 1", "mid_slots", 0)
 	# Slot: Low 1
-	add_slot_row(container, "Low Slot 1", "low_slots", 0)
+	create_slot(container, "Low Slot 1", "low_slots", 0)
 
-	# Note: This UI assumes you want to install the FIRST item in your inventory.
-	# Real UI needs drag-and-drop from Inventory Window.
 	var note = Label.new()
-	note.text = "NOTE: Installs Item #0 from Inventory"
+	note.text = "Drag Items from Inventory"
 	note.modulate = Color(0.7, 0.7, 0.7)
 	container.add_child(note)
 
-func add_slot_row(container, label_text, slot_type, slot_index):
-	var row = HBoxContainer.new()
+func create_slot(container, label_text, slot_type, slot_index):
+	var slot_script = preload("res://src/ui/space/SurgerySlot.gd")
+	var slot = slot_script.new()
+	slot.setup(slot_type, slot_index, label_text)
+	slot.connect("organ_dropped", _on_organ_dropped)
+	container.add_child(slot)
 
-	var label = Label.new()
-	label.text = label_text
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(label)
-
-	var btn = Button.new()
-	btn.text = "GRAFT (Idx 0)"
-	btn.connect("pressed", func(): _on_graft_pressed(slot_type, slot_index))
-	row.add_child(btn)
-
-	container.add_child(row)
-
-func _on_graft_pressed(slot_type, slot_index):
-	print("Grafting Inventory[0] into ", slot_type, "[", slot_index, "]")
-	# Hardcoded to index 0 for MVP testing
+func _on_organ_dropped(inventory_index, slot_type, slot_index):
+	print("Grafting Inventory[", inventory_index, "] into ", slot_type, "[", slot_index, "]")
 	var payload = {
-		"inventory_index": 0,
+		"inventory_index": inventory_index,
 		"slot_type": slot_type,
 		"slot_index": slot_index
 	}
