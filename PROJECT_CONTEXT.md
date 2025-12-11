@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 01:16:44
+**Last Updated:** 2025-12-11 05:10:24
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -301,7 +301,11 @@ if __name__ == "__main__":
       "speed": 10,
       "stamina": 100,
       "defense": 20,
-      "sensor_range": 0
+      "sensor_range": 0,
+      "mass": 200.0,
+      "slew_rate": 2.0,
+      "scan_resolution": 100.0,
+      "signature_radius": 10.0
     },
     "slots": 4
   },
@@ -316,7 +320,11 @@ if __name__ == "__main__":
       "speed": 12,
       "stamina": 100,
       "defense": 10,
-      "sensor_range": 0
+      "sensor_range": 0,
+      "mass": 150.0,
+      "slew_rate": 4.0,
+      "scan_resolution": 200.0,
+      "signature_radius": 5.0
     },
     "slots": 6
   },
@@ -331,7 +339,11 @@ if __name__ == "__main__":
       "speed": 14,
       "stamina": 120,
       "defense": 5,
-      "sensor_range": 0
+      "sensor_range": 0,
+      "mass": 80.0,
+      "slew_rate": 8.0,
+      "scan_resolution": 400.0,
+      "signature_radius": 2.0
     },
     "slots": 4
   },
@@ -346,7 +358,11 @@ if __name__ == "__main__":
       "speed": 50,
       "stamina": 0,
       "defense": 10,
-      "sensor_range": 100.0
+      "sensor_range": 100.0,
+      "mass": 1000.0,
+      "slew_rate": 1.0,
+      "scan_resolution": 500.0,
+      "signature_radius": 50.0
     },
     "slots": 3
   },
@@ -361,7 +377,11 @@ if __name__ == "__main__":
       "speed": 20,
       "stamina": 0,
       "defense": 50,
-      "sensor_range": 80.0
+      "sensor_range": 80.0,
+      "mass": 5000.0,
+      "slew_rate": 0.5,
+      "scan_resolution": 200.0,
+      "signature_radius": 200.0
     },
     "slots": 5
   },
@@ -376,12 +396,15 @@ if __name__ == "__main__":
       "speed": 15,
       "stamina": 0,
       "defense": 30,
-      "sensor_range": 60.0
+      "sensor_range": 60.0,
+      "mass": 8000.0,
+      "slew_rate": 0.2,
+      "scan_resolution": 100.0,
+      "signature_radius": 300.0
     },
     "slots": 8
   }
 ]
-
 
 ```
 
@@ -3547,6 +3570,23 @@ Preventing escape is a dedicated role.
 *   **Armor:** Static HP, high Kinetic resistance. Reduces speed when heavy plates are installed.
 *   **Hull:** The structure. No resistances. When this hits 0, the ship explodes.
 
+## 9. Ground Combat: Industrial Rigs
+Instead of generic "characters," players pilot heavy Exosuits with distinct weight and control profiles.
+
+### Physics Profiles
+*   **The Marine (Iso-Static Dreadnought):** High Inertia, Low Slew Rate. A moving turret.
+*   **The Sapper (Hex-Stabilized Construction):** Medium Inertia, Snap-Locking Slew.
+*   **The Biologist (Vector-Thrust Hazard):** Low Inertia (Instant), High Slew.
+
+### Targeting Sensors
+*   **Threat Signatures:** Marines have high signature radius (auto-taunt).
+*   **Structural Analysis:** Sappers see weak points and grid snaps.
+*   **Bio-Scan:** Biologists have fast scan resolution for triage.
+
+### Resource Management (Suit Battery)
+*   **Capacitor:** Replaces Mana. Powers shields, weapons, and tools.
+*   **Depletion:** 0% Cap = Immobilization.
+
 ```
 
 ### ./design/Tools_and_Social.md
@@ -4793,6 +4833,10 @@ const UPDATE_RATE: float = 0.05 # 20Hz
 var current_target_id: String = ""
 var camera: Camera3D
 
+# Visuals
+var torso: Node3D
+var slew_rate: float = 2.0 # Radians/sec, dynamic based on class
+
 func _ready():
 	# Temporary: Spawn Hangar Zone for testing
 	var hangar = preload("res://src/scenes/ground/HangarZone.gd").new()
@@ -4801,6 +4845,14 @@ func _ready():
 
 	# Find Camera (Assuming CameraRig is sibling or child, for now grab viewport camera)
 	camera = get_viewport().get_camera_3d()
+
+	# Create Torso (Visual Representation for Turret Slew)
+	torso = MeshInstance3D.new()
+	var box = BoxMesh.new()
+	box.size = Vector3(0.5, 1.5, 0.5)
+	torso.mesh = box
+	torso.position.y = 0.75
+	add_child(torso)
 
 	# Listen for Gear
 	NetworkManager.connect("packet_received", _on_packet_received)
@@ -4814,10 +4866,11 @@ func _on_packet_received(type: String, payload: Dictionary):
 				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
 
 func _physics_process(delta):
-	# Movement
+	# Movement (Inertia)
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var direction = Vector3(input_dir.x, 0, input_dir.y).normalized()
 
+	# Note: move_toward handles linear acceleration/friction automatically
 	if direction:
 		velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 		velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
@@ -4827,11 +4880,48 @@ func _physics_process(delta):
 
 	move_and_slide()
 
+	# Turret Slew (Torso Tracking)
+	_handle_turret_slew(delta)
+
 	# Network Update
 	update_timer += delta
 	if update_timer >= UPDATE_RATE:
 		update_timer = 0
 		_send_movement()
+
+func _handle_turret_slew(delta):
+	if !camera: return
+
+	var mouse_pos = get_viewport().get_mouse_position()
+	var from = camera.project_ray_origin(mouse_pos)
+	var to = from + camera.project_ray_normal(mouse_pos) * 1000.0
+
+	# Raycast to ground plane (Y=0)
+	# Simple plane intersection math since physics raycast needs collision
+	var t = -from.y / (to.y - from.y)
+	if t >= 0:
+		var target_point = from + (to - from) * t
+		target_point.y = torso.global_position.y # Look level
+
+		# Calculate angle difference
+		var current_quat = torso.global_transform.basis.get_rotation_quaternion()
+		var target_transform = torso.global_transform.looking_at(target_point, Vector3.UP)
+		var target_quat = target_transform.basis.get_rotation_quaternion()
+
+		# Rotate towards
+		var new_quat = current_quat.slerp(target_quat, slew_rate * delta)
+		torso.global_transform.basis = Basis(new_quat)
+
+		# Firing Solution Check
+		var forward = -torso.global_transform.basis.z
+		var to_target = (target_point - torso.global_position).normalized()
+		var dot = forward.dot(to_target)
+
+		if dot > 0.99:
+			# Aligned
+			pass # Green Reticle logic would go here
+		else:
+			pass # Red Reticle logic
 
 func _input(event):
 	# Tab Targeting
@@ -4840,7 +4930,7 @@ func _input(event):
 
 	# Mouse Click Targeting
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_raycast_target(event.position)
+		pass # Raycast handled in _handle_turret_slew implicitly for looking, selection separate
 
 	# F1 Self Target (Placeholder for Party)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
