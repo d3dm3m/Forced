@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-10 13:46:09
+**Last Updated:** 2025-12-11 00:05:24
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -100,7 +100,8 @@ graph TD
 ```
 ./
     PROJECT_CONTEXT.md
-    Code_Audit_Report.md
+    LICENSE
+    extract_files.py
     update_context.py
     server/
         assets/
@@ -145,6 +146,7 @@ graph TD
                 main.go
             ground/
                 main.go
+    docs/
     design/
         Mechanics.md
         Tools_and_Social.md
@@ -164,6 +166,7 @@ graph TD
                     SurgeryWindow.gd
                     DraggableWindow.gd
                     MarketWindow.gd
+                ground/
             autoload/
                 NetworkManager.gd
             scenes/
@@ -183,8 +186,9 @@ graph TD
 
 ## File Census
 
-- **.md**: 8
-- **.py**: 1
+- **.md**: 7
+- ****: 1
+- **.py**: 2
 - **.mod**: 1
 - **.sum**: 1
 - **.json**: 2
@@ -195,56 +199,90 @@ graph TD
 
 ## File Contents
 
-### ./Code_Audit_Report.md
-```md
-# Code Audit Report: Phase 3 Beta Readiness
+### ./LICENSE
+*Binary/Asset File*
 
-## 1. Architecture Integrity Check
+### ./extract_files.py
+```py
+import os
+import re
 
-*   **Twin-Core Model:** The project structure reflects the Twin-Core design with `server/cmd/ground/main.go` existing. However, the Space Core (`server/cmd/space/main.go`) is currently missing from the codebase, despite being mentioned in `docker-compose.yml` (Sprint 10) and the original plan.
-    *   **Verdict:** **Failed**. The Space Core implementation is incomplete or missing.
-*   **Handoff Protocol (Redis):** While `docker-compose.yml` includes a Redis service, there is **no code** in the `server/` directory that imports or uses a Redis client (verified via grep). The Handoff Protocol described in `Technical.md` (saving state to Redis, token exchange) is unimplemented.
-    *   **Verdict:** **Failed**. The persistence layer relies solely on PostgreSQL, likely causing data race issues during server switching if the Space Core existed.
-*   **Headless Validator:** There is no "Headless Godot" integration. The project uses simple server-side Go logic for validation (e.g., `ValidateVector` in `physics.go` from Sprint 5 history, but file check failed). The "Anti-Cheat" is rudimentary logic, not a true headless simulation.
-    *   **Verdict:** **Partial/Placeholder**.
+def extract_files(md_file):
+    with open(md_file, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-## 2. Feature Gap Analysis (The 'Forgotten' List)
+    # Regex to find file blocks
+    # Format: ### ./path/to/file
+    # ```lang
+    # content
+    # ```
 
-Comparing `Mechanics.md` to the codebase:
+    # We will split by "### ./" and then process each chunk
+    chunks = content.split("### ./")
 
-*   **Bio-Grafting Rejection:** **Missing**. No logic for "Bleeding," "Spasms," or "Necrosis" exists in `player.go` or `gamedata.go`. The `Player` struct has `ShipLayout`, but no organ tier tracking or rejection mechanics.
-*   **Gate Sickness:** **Missing**. No "Sanity Meter" or debuff logic tied to FTL travel.
-*   **Sanity System:** **Partial**. `Sanity` field added to `Player` struct (Sprint 7), and basic decay logic exists in `player.go`. However, the "Phantom" injection and deep mechanic integration are minimal.
-*   **Economy (Meat Market):** **Missing**. No implementation of "Solium," "Biomass" refining, or "Stable Tissue."
-*   **Territory Control:** **Missing**. No "Claim Flags" or "Vulnerability Window" logic found.
-*   **Ground Combat:** **Basic**. Simple `Projectile` and `DamageNumber` logic exists, but the "Light/Dark" stealth mechanic is missing.
+    # Skip the first chunk (header stuff)
+    for chunk in chunks[1:]:
+        # First line is the filepath
+        lines = chunk.splitlines()
+        filepath = lines[0].strip()
 
-## 3. Technical Debt & Risk
+        # Determine content
+        # Find the first ``` and the last ```
+        # Note: Code blocks might be indented or just start.
+        # But usually in the provided format they are strictly formatted.
 
-*   **Concurrency:**
-    *   `ChatManager` in `server/internal/game/chat.go` uses `sync.RWMutex`, which is good.
-    *   However, `ChatManager` sessions map usage needs careful review to ensure no race conditions during rapid connect/disconnect cycles.
-*   **Hardcoded Values:**
-    *   `server/internal/db/db.go` contains hardcoded database credentials (`postgres://user:password@localhost...`) as a fallback. This is a security risk.
-    *   `server/internal/game/gamedata.go` uses hardcoded `Classes` and `Items` definitions instead of loading from the JSON files created in Sprint 9 (`ships.json`, `classes.json` were created but the loader code provided in Sprint 9 might have been overwritten or not fully integrated as the read of `gamedata.go` shows hardcoded values).
-*   **SQL Sanitization:**
-    *   `server/internal/game/player.go` uses `pgx` parameterized queries (`$1`, `$2`...), which is **Safe**.
-    *   **Critical Bug:** The `player.go` code passes `[]byte` (from `json.Marshal`) directly to `jsonb` columns. PostgreSQL will likely reject this with a type mismatch error (`bytea` vs `jsonb`). These should be cast to string or used with a driver-compatible JSON wrapper.
+        # Check if binary/asset file placeholder
+        if "*Binary/Asset File*" in chunk:
+            print(f"Skipping binary file: {filepath}")
+            continue
 
-## 4. Asset Inventory Status
+        # Extract code block
+        try:
+            start_idx = chunk.find("```")
+            if start_idx == -1:
+                print(f"No code block found for {filepath}")
+                continue
 
-*   **JSON Files:** `server/assets/data/ships.json` exists and contains the requested Kestrel, Omen, and Hauler data.
-*   **Missing Files:** `server/assets/data/classes.json` was not found during the file listing, despite being part of the Sprint 9 plan.
-*   **Loader Status:** `server/internal/game/gamedata.go` currently populates data via hardcoded Go structs, ignoring the `ships.json` file. The "Content Injection" task is effectively incomplete in the active codebase.
+            # Find end of start line (e.g. ```go)
+            code_start_newline = chunk.find("\n", start_idx)
 
-## 5. Remediation Plan (Must Fix for RC1)
+            # Find closing ```
+            end_idx = chunk.rfind("```")
 
-1.  **Fix Persistence Layer (Critical):** Update `server/internal/game/player.go` to properly cast JSON byte slices to strings/types compatible with PostgreSQL `jsonb` columns to prevent runtime errors.
-2.  **Integrate JSON Loaders:** Modify `server/internal/game/gamedata.go` to actually parse `ships.json` and the missing `classes.json` instead of using hardcoded values.
-3.  **Implement Handoff Protocol:** Add Redis client support to the server and implement the session token exchange defined in `Technical.md` to support the Twin-Core architecture.
-4.  **Create Space Core:** Implement the missing `server/cmd/space/main.go` entry point.
-5.  **Remove Hardcoded Secrets:** Switch `server/internal/db/db.go` to strictly use environment variables and remove the fallback hardcoded credentials.
-6.  **Mechanic Implementation:** Select at least one core "Bio-Horror" mechanic (e.g., basic Organ Rejection stats) and implement it server-side to justify the "Bio-Horror" genre tag.
+            if end_idx <= start_idx:
+                print(f"Malformed block for {filepath}")
+                continue
+
+            file_content = chunk[code_start_newline+1:end_idx]
+
+            # Remove trailing newline if it looks like artifact?
+            # Usually keep as is.
+
+            # Write file
+            # Ensure directory exists
+            dirpath = os.path.dirname(filepath)
+            if dirpath and not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+
+            # If file already exists, I should check if I should overwrite.
+            # The plan says "Restore Missing Files".
+            # If I already moved it from Force, maybe I shouldn't overwrite?
+            # Or maybe PROJECT_CONTEXT.md is the source of truth?
+            # The user said "restore them correctly", "Force" directory has files.
+            # I should probably prioritize "Force" files if they exist, and only write if not exists.
+
+            if os.path.exists(filepath):
+                print(f"File exists, skipping: {filepath}")
+            else:
+                with open(filepath, 'w', encoding='utf-8') as out:
+                    out.write(file_content)
+                print(f"Restored: {filepath}")
+
+        except Exception as e:
+            print(f"Error processing {filepath}: {e}")
+
+if __name__ == "__main__":
+    extract_files("PROJECT_CONTEXT.md")
 
 ```
 
@@ -343,6 +381,7 @@ Comparing `Mechanics.md` to the codebase:
   }
 ]
 
+
 ```
 
 ### ./server/assets/data/ships.json
@@ -388,6 +427,7 @@ Comparing `Mechanics.md` to the codebase:
     "description": "Syndicate Industrial Ship. Massive cargo hold."
   }
 ]
+
 
 ```
 
@@ -520,6 +560,7 @@ func ConnectRedis() error {
 	return nil
 }
 
+
 ```
 
 ### ./server/internal/db/db.go
@@ -549,6 +590,7 @@ func Connect() error {
 	}
 	return nil
 }
+
 
 ```
 
@@ -1456,6 +1498,7 @@ func TestLoadGameData(t *testing.T) {
 	}
 }
 
+
 ```
 
 ### ./server/internal/game/chat.go
@@ -1569,6 +1612,7 @@ func (cm *ChatManager) BroadcastSystem(text string) {
 		cm.conn.WriteToUDP(packetBytes, session.Addr)
 	}
 }
+
 
 ```
 
@@ -2213,6 +2257,7 @@ func ValidateTransferToken(token string) (string, error) {
 	return username, nil
 }
 
+
 ```
 
 ### ./server/internal/game/space/physics_test.go
@@ -2255,6 +2300,7 @@ func TestValidateVector(t *testing.T) {
 		t.Logf("Detected cheat: %v", err)
 	}
 }
+
 
 ```
 
@@ -2311,6 +2357,7 @@ func ValidateVector(clientPos Vector3, clientVel Vector3, lastServerPos Vector3,
 	return true, nil
 }
 
+
 ```
 
 ### ./server/internal/game/ground/logic_test.go
@@ -2353,6 +2400,7 @@ func TestValidateMovement(t *testing.T) {
 		t.Logf("Correctly detected invalid movement: %v", err)
 	}
 }
+
 
 ```
 
@@ -2415,6 +2463,7 @@ func ValidateMovement(current ClientState, ctx ValidationContext) (bool, error) 
 
 	return true, nil
 }
+
 
 ```
 
@@ -2731,7 +2780,7 @@ func gameLoop(conn *websocket.Conn, player *game.Player) {
 
 		case packet := <-actionChan:
 			// Handle Input Packet Safely
-			handleActionPacket(packet, player, marketService, surgeryService)
+			handleActionPacket(packet, conn, player, marketService, surgeryService)
 
 		case <-ticker.C:
 			tickCount++
@@ -2788,7 +2837,7 @@ func gameLoop(conn *websocket.Conn, player *game.Player) {
 	}
 }
 
-func handleActionPacket(packet Packet, player *game.Player, market *game.MarketService, surgery *game.SurgeryService) {
+func handleActionPacket(packet Packet, conn *websocket.Conn, player *game.Player, market *game.MarketService, surgery *game.SurgeryService) {
 	switch packet.Type {
 	case protocol.PACKET_TYPE_BUY_ITEM:
 		var payload protocol.BuyItemPayload
@@ -2812,7 +2861,16 @@ func handleActionPacket(packet Packet, player *game.Player, market *game.MarketS
 		// Space Combat Fire
 		// For MVP, target is dummy or self-test.
 		// We'll spawn a Missile aimed at a fixed point for visuals.
-		handleSpaceAttack(player)
+		pkt := handleSpaceAttack(player)
+		if pkt != nil {
+			// Convert to local Packet type for main.go
+			// Ideally we use protocol.Packet throughout, but main defines its own struct with identical json tags
+			// We can just marshal and send.
+			// conn.WriteJSON expects interface{}.
+			// We can pass pkt directly if `protocol.Packet` matches `Packet`.
+			// `main.Packet` is identical structure.
+			conn.WriteJSON(pkt)
+		}
 
 	case "PACKET_TYPE_SPACE_STATE":
 		// Validation placeholder
@@ -2934,6 +2992,11 @@ func main() {
 	defer db.Pool.Close()
 	log.Println("Ground Core: Database Connected")
 
+	if err := db.ConnectRedis(); err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+	log.Println("Ground Core: Redis Connected")
+
 	addr, err := net.ResolveUDPAddr("udp", ":5000")
 	if err != nil {
 		log.Fatal(err)
@@ -3000,7 +3063,49 @@ func handlePacket(conn *net.UDPConn, addr *net.UDPAddr, data []byte, repo game.P
 
 	case protocol.PACKET_TYPE_GROUND_ATTACK:
 		handleAttack(conn, packet.Payload, addr)
+
+	case "REQUEST_LAUNCH":
+		handleLaunchRequest(conn, addr)
 	}
+}
+
+func handleLaunchRequest(conn *net.UDPConn, addr *net.UDPAddr) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	var session *GroundSession
+	for _, s := range sessions {
+		if s.Addr.String() == addr.String() {
+			session = s
+			break
+		}
+	}
+
+	if session == nil {
+		return
+	}
+
+	// Generate Token
+	token, err := game.GenerateTransferToken(session.ID)
+	if err != nil {
+		log.Printf("Failed to generate token: %v", err)
+		return
+	}
+
+	// Send Back
+	payload := map[string]string{
+		"token": token,
+		"url":   "ws://localhost:8080/ws", // Space Core URL
+	}
+	bytes, _ := json.Marshal(payload)
+
+	packet := protocol.Packet{
+		Type:    "PACKET_TYPE_LAUNCH_GRANTED",
+		Payload: bytes,
+	}
+	sendPacket(conn, addr, packet)
+
+	log.Printf("Launch Granted for %s. Token: %s", session.ID, token)
 }
 
 func handleMovement(payload json.RawMessage, addr *net.UDPAddr) {
@@ -3380,6 +3485,7 @@ Guilds are not just "Chat Rooms"; they are shared **Digital Keychains**.
     *   **Officer:** Can withdraw "Spec Ops" gear. Can fly Guild Cruisers.
     *   **Leader:** Can define Access Keys and set Tax Rates.
 
+
 ```
 
 ### ./design/Lore.md
@@ -3420,6 +3526,7 @@ We have accepted that this timeline is doomed. The Entropy cannot be stopped, on
 *   **The Whisper Network:** Encrypted burst transmissions.
 *   **Black Boxes:** Audio logs that change content based on Sanity.
 *   **Unreliable Narrator:** Low sanity reveals the "Truth Layer" (monsters disguised as ships).
+
 
 ```
 
@@ -3544,6 +3651,7 @@ To handle the dual gameplay loops (Grid-based Horror vs. Vector-based Stealth) w
     4.  **Connection:** The Party is seamlessly transferred (via Handoff Protocol) to this isolated IP address.
     5.  **Teardown:** When the raid wipes or completes, the container spins down, writing loot logs to the main DB.
 
+
 ```
 
 ### ./design/Game_Data.md
@@ -3627,6 +3735,7 @@ To handle the dual gameplay loops (Grid-based Horror vs. Vector-based Stealth) w
 *   **Security:** Null-Sec (0.0).
 *   **Visuals:** **Ship Graveyard**. A dense debris field of millions of destroyed vessels. Foggy, dark, and silent.
 *   **Gameplay:** Lawless. High-risk salvage operations. Players can claim territory here.
+
 
 ```
 
@@ -3712,6 +3821,7 @@ To handle the dual gameplay loops (Grid-based Horror vs. Vector-based Stealth) w
 *   **Weapon SFX:** Distinct sounds for Ballistic (Thud) vs Energy (Hum/Crack).
 *   **UI SFX:** "Click" vs "Datastream" sounds for the different UI paradigms.
 
+
 ```
 
 ### ./client/assets/shaders/SanityDistortion.gdshader
@@ -3756,6 +3866,7 @@ void fragment() {
     }
 }
 
+
 ```
 
 ### ./client/src/ui/InventoryUI.gd
@@ -3789,6 +3900,7 @@ func _on_inventory_updated(items: Array):
 		label.text = str(item.count) + "x\n" + item.item_id
 		slot.add_child(label)
 		grid.add_child(slot)
+
 
 ```
 
@@ -4140,27 +4252,6 @@ func connect_to_space(token: String):
 
 var _pending_token: String = ""
 var _handshake_sent: bool = false
-
-func _process(delta):
-	ws_peer.poll()
-	var state = ws_peer.get_ready_state()
-
-	if state == WebSocketPeer.STATE_OPEN:
-		if !_handshake_sent and _pending_token != "":
-			_send_login_packet()
-			_handshake_sent = true
-
-		while ws_peer.get_available_packet_count() > 0:
-			var pkt = ws_peer.get_packet()
-			var txt = pkt.get_string_from_utf8()
-			var json = JSON.parse_string(txt)
-			if json:
-				_handle_packet(json)
-	elif state == WebSocketPeer.STATE_CLOSED:
-		if is_connected_to_space:
-			print("NetworkManager: Disconnected from Space Core")
-			is_connected_to_space = false
-			emit_signal("disconnected_from_server")
 
 func _send_login_packet():
 	var pkt = {
@@ -4544,6 +4635,7 @@ func _physics_process(delta):
 	# Ensure we always look at the target, or a fixed point relative to the camera
 	# For strict isometric, rotation usually shouldn't change, just position.
 	# So we just move the rig.
+
 
 ```
 
