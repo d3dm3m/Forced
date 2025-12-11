@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 07:01:50
+**Last Updated:** 2025-12-11 07:13:36
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -82,6 +82,7 @@ graph TD
 - [x] **Sprint 16 (Ground):** Established Ground Gameplay Loop (20Hz UDP, Validation, Broadcasting).
 - [x] **Sprint 17 (Tether):** Implemented Ground Persistence and Hangar Handoff trigger.
 - [x] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.
+- [x] **Sprint 18 (Mechanics):** Implemented Passive Ship Simulation (Shield/Capacitor Regen).
 
 ## The Macro-Scale Architecture (Planned)
 * **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.
@@ -1021,14 +1022,19 @@ func CalculateLockTime(sourceScanRes float64, targetSCS float64) float64 {
 ```go
 package game
 
+import "math"
+
 // DerivedStats represents the calculated total statistics of a ship.
 type DerivedStats struct {
-	MaxHealth    float64
-	Speed        float64
-	SensorRange  float64
-	BioCapacity  int
+	MaxHealth     float64
+	MaxShield     float64
+	MaxCapacitor  float64
+	CapRecharge   float64 // Peak Recharge Rate (GJ/s)
+	Speed         float64
+	SensorRange   float64
+	BioCapacity   int
 	CurrentBioLoad int
-	RejectionRate  float64 // Damage per second
+	RejectionRate float64 // Damage per second
 }
 
 // CalculateShipStats aggregates the base ship stats with all installed module modifiers.
@@ -1061,18 +1067,28 @@ func CalculateShipStats(player *Player) DerivedStats {
 	shipDef, ok := Ships[baseShipID]
 	var stats DerivedStats
 	if ok {
-		stats.MaxHealth = getFloat(shipDef.Stats, "base_hull", 1000.0)
-		stats.Speed = getFloat(shipDef.Stats, "base_speed", 100.0) // "speed" might not be in JSON, check defaults
-		// Checking ships.json from context: "base_hull": 1000, "base_shield": 500, "capacitor": 100
-		// No speed in ships.json?
-		// Checking classes.json: "Frigate Ace" has stats: { "speed": 50 }
-		// Maybe base stats come from CLASS?
-		// The prompt says "Start with the Ship's base stats (from ships.json)".
-		// If ships.json lacks speed, I'll default it.
-		stats.BioCapacity = getInt(shipDef.Stats, "bio_capacity", 50) // Default capacity
+		// Use explicit struct fields if populated (from new JSON), fallback to Stats map for older data
+		stats.MaxHealth = shipDef.HullHP
+		if stats.MaxHealth == 0 { stats.MaxHealth = getFloat(shipDef.Stats, "base_hull", 1000.0) }
+
+		stats.MaxShield = shipDef.ShieldHP
+		if stats.MaxShield == 0 { stats.MaxShield = getFloat(shipDef.Stats, "base_shield", 500.0) }
+
+		stats.MaxCapacitor = shipDef.CapacitorCapacity
+		if stats.MaxCapacitor == 0 { stats.MaxCapacitor = getFloat(shipDef.Stats, "capacitor", 100.0) }
+
+		stats.CapRecharge = shipDef.CapacitorRechargeRate
+		if stats.CapRecharge == 0 { stats.CapRecharge = 100.0 }
+
+		stats.SensorRange = getFloat(shipDef.Stats, "sensor_range", 100.0)
+		stats.Speed = getFloat(shipDef.Stats, "base_speed", 100.0)
+		stats.BioCapacity = getInt(shipDef.Stats, "bio_capacity", 50)
 	} else {
 		// Absolute fallback
 		stats.MaxHealth = 1000
+		stats.MaxShield = 500
+		stats.MaxCapacitor = 100
+		stats.CapRecharge = 20
 		stats.Speed = 100
 		stats.BioCapacity = 50
 	}
@@ -1138,11 +1154,67 @@ func applyModuleStats(stats *DerivedStats, item *ItemStack) {
 			stats.Speed += effectiveValue
 		case "health", "base_hull":
 			stats.MaxHealth += effectiveValue
+		case "shield", "base_shield":
+			stats.MaxShield += effectiveValue
+		case "capacitor":
+			stats.MaxCapacitor += effectiveValue
 		case "sensor_range":
 			stats.SensorRange += effectiveValue
 		case "bio_capacity":
 			stats.BioCapacity += int(effectiveValue)
 		}
+	}
+}
+
+// RegenerateShip updates the transient state of the ship (Shield/Cap) based on delta time.
+func RegenerateShip(player *Player, stats DerivedStats, dt float64) {
+	// 1. Shield Regen (Linear)
+	// Example: 1% per second
+	regenAmount := (stats.MaxShield * 0.01) * dt
+	if player.CurrentShield < stats.MaxShield {
+		player.CurrentShield += regenAmount
+		if player.CurrentShield > stats.MaxShield {
+			player.CurrentShield = stats.MaxShield
+		}
+	}
+
+	// 2. Capacitor Regen (Non-Linear / "Zombie Curve")
+	// Formula: dC/dt = (10 * MaxCap / RechargeTime) * ( sqrt(C/Max) - C/Max )
+	// RechargeTime usually ~300s? We used "CapRecharge" as a Rate or Time?
+	// In EVE, the stat is "Recharge Time". In our JSON we called it "capacitor_recharge".
+	// Let's treat stats.CapRecharge as "Recharge Time in Seconds".
+
+	if stats.MaxCapacitor > 0 && stats.CapRecharge > 0 {
+		ratio := player.CurrentCapacitor / stats.MaxCapacitor
+		if ratio < 1.0 {
+			// Avoid Sqrt of 0 or negative if empty
+			if ratio < 0 { ratio = 0 }
+
+			// EVE formula approximation
+			// Rate = (10 * Max) / Time * (sqrt(ratio) - ratio) (simplified curve)
+			// Wait, the real formula is complex.
+			// Simpler "Peaked" curve: Rate = PeakRate * 2.5 * ratio * (1 - ratio)? No.
+			// Let's use the provided Prompt formula:
+			// Rate = (10 * MaxCap) / RechargeTime * ( sqrt(Current/Max) - (Current/Max) )
+
+			rate := (10.0 * stats.MaxCapacitor) / stats.CapRecharge * (math.Sqrt(ratio) - ratio)
+
+			// If rate is negative (shouldn't be for 0 < ratio < 1), clamp 0
+			if rate < 0 { rate = 0 }
+
+			// Minimum trickle to prevent stuck at 0
+			if player.CurrentCapacitor <= 0.1 {
+				rate = stats.MaxCapacitor * 0.005 // Jump start
+			}
+
+			player.CurrentCapacitor += rate * dt
+			if player.CurrentCapacitor > stats.MaxCapacitor {
+				player.CurrentCapacitor = stats.MaxCapacitor
+			}
+		}
+	} else {
+		// Fallback Linear
+		player.CurrentCapacitor += 1.0 * dt
 	}
 }
 
@@ -2155,11 +2227,13 @@ type Player struct {
 	Inventory     []ItemStack    `json:"inventory"`      // Changed to slice of structs
 	Ship          ShipLayout     `json:"ship_layout"`    // JSONB
 	GroundGear    GroundGear     `json:"ground_gear"`    // JSONB
-	Solium        int            `json:"solium"`         // Currency
-	Skills        map[string]int `json:"skills"`         // Ship/Space Skills
-	CurrentHealth float64        `json:"current_health"` // Ship Health (Space) or Player Health (Ground)
-	SystemID      string         `json:"system_id"`      // Current Star System (e.g. "Sol-0")
-	CreatedAt     time.Time      `json:"created_at"`
+	Solium           int            `json:"solium"`            // Currency
+	Skills           map[string]int `json:"skills"`            // Ship/Space Skills
+	CurrentHealth    float64        `json:"current_health"`    // Ship Health (Space) or Player Health (Ground)
+	CurrentShield    float64        `json:"current_shield"`    // Transient
+	CurrentCapacitor float64        `json:"current_capacitor"` // Transient
+	SystemID         string         `json:"system_id"`         // Current Star System (e.g. "Sol-0")
+	CreatedAt        time.Time      `json:"created_at"`
 }
 
 type PlayerRepository interface {
@@ -2746,11 +2820,15 @@ type MapDataPayload struct {
 }
 
 type ShipStatsPayload struct {
-	CurrentHealth float64 `json:"current_health"`
-	MaxHealth     float64 `json:"max_health"`
-	BioLoad       int     `json:"bio_load"`
-	BioCapacity   int     `json:"bio_capacity"`
-	Speed         float64 `json:"speed"`
+	CurrentHealth    float64 `json:"current_health"`
+	MaxHealth        float64 `json:"max_health"`
+	CurrentShield    float64 `json:"current_shield"`
+	MaxShield        float64 `json:"max_shield"`
+	CurrentCapacitor float64 `json:"current_capacitor"`
+	MaxCapacitor     float64 `json:"max_capacitor"`
+	BioLoad          int     `json:"bio_load"`
+	BioCapacity      int     `json:"bio_capacity"`
+	Speed            float64 `json:"speed"`
 }
 
 type BuyItemPayload struct {
@@ -3003,6 +3081,15 @@ func gameLoop(conn *websocket.Conn, player *game.Player) {
 		projMgr = game.NewProjectileManager()
 	}
 
+	// Initialize Stats if empty (Login)
+	initialStats := game.CalculateShipStats(player)
+	if player.CurrentShield == 0 {
+		player.CurrentShield = initialStats.MaxShield
+	}
+	if player.CurrentCapacitor == 0 {
+		player.CurrentCapacitor = initialStats.MaxCapacitor
+	}
+
 	// Setup Ticker for Game Logic (10Hz)
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
@@ -3050,6 +3137,11 @@ func gameLoop(conn *websocket.Conn, player *game.Player) {
 		case <-ticker.C:
 			tickCount++
 
+			// 0. Update Stats & Regeneration (Every Tick)
+			// Calculate stats every tick to ensure regen uses latest state
+			stats := game.CalculateShipStats(player)
+			game.RegenerateShip(player, stats, 0.1)
+
 			// 1. Tick Projectiles (Every Tick - 10Hz)
 			// Note: 10Hz is slow for projectiles, client interpolation is key.
 			mu.Lock()
@@ -3067,10 +3159,8 @@ func gameLoop(conn *websocket.Conn, player *game.Player) {
 			}
 			mu.Unlock()
 
-			// 2. Every 10 ticks (1 second), perform Stat Calculation & Bio-Load Logic
+			// 2. Every 10 ticks (1 second), perform Bio-Load Logic & Broadcast
 			if tickCount%10 == 0 {
-				stats := game.CalculateShipStats(player)
-
 				// Apply Rejection / Decay
 				if stats.RejectionRate > 0 {
 					player.CurrentHealth -= stats.RejectionRate
@@ -3215,11 +3305,15 @@ func sendCombatHit(conn *websocket.Conn, projID, targetID string, damage float64
 
 func sendShipStats(conn *websocket.Conn, player *game.Player, stats game.DerivedStats) {
 	payload := protocol.ShipStatsPayload{
-		CurrentHealth: player.CurrentHealth,
-		MaxHealth:     stats.MaxHealth,
-		BioLoad:       stats.CurrentBioLoad,
-		BioCapacity:   stats.BioCapacity,
-		Speed:         stats.Speed,
+		CurrentHealth:    player.CurrentHealth,
+		MaxHealth:        stats.MaxHealth,
+		CurrentShield:    player.CurrentShield,
+		MaxShield:        stats.MaxShield,
+		CurrentCapacitor: player.CurrentCapacitor,
+		MaxCapacitor:     stats.MaxCapacitor,
+		BioLoad:          stats.CurrentBioLoad,
+		BioCapacity:      stats.BioCapacity,
+		Speed:            stats.Speed,
 	}
 
 	payloadBytes, _ := json.Marshal(payload)

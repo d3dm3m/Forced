@@ -1,13 +1,18 @@
 package game
 
+import "math"
+
 // DerivedStats represents the calculated total statistics of a ship.
 type DerivedStats struct {
-	MaxHealth    float64
-	Speed        float64
-	SensorRange  float64
-	BioCapacity  int
+	MaxHealth     float64
+	MaxShield     float64
+	MaxCapacitor  float64
+	CapRecharge   float64 // Peak Recharge Rate (GJ/s)
+	Speed         float64
+	SensorRange   float64
+	BioCapacity   int
 	CurrentBioLoad int
-	RejectionRate  float64 // Damage per second
+	RejectionRate float64 // Damage per second
 }
 
 // CalculateShipStats aggregates the base ship stats with all installed module modifiers.
@@ -40,18 +45,28 @@ func CalculateShipStats(player *Player) DerivedStats {
 	shipDef, ok := Ships[baseShipID]
 	var stats DerivedStats
 	if ok {
-		stats.MaxHealth = getFloat(shipDef.Stats, "base_hull", 1000.0)
-		stats.Speed = getFloat(shipDef.Stats, "base_speed", 100.0) // "speed" might not be in JSON, check defaults
-		// Checking ships.json from context: "base_hull": 1000, "base_shield": 500, "capacitor": 100
-		// No speed in ships.json?
-		// Checking classes.json: "Frigate Ace" has stats: { "speed": 50 }
-		// Maybe base stats come from CLASS?
-		// The prompt says "Start with the Ship's base stats (from ships.json)".
-		// If ships.json lacks speed, I'll default it.
-		stats.BioCapacity = getInt(shipDef.Stats, "bio_capacity", 50) // Default capacity
+		// Use explicit struct fields if populated (from new JSON), fallback to Stats map for older data
+		stats.MaxHealth = shipDef.HullHP
+		if stats.MaxHealth == 0 { stats.MaxHealth = getFloat(shipDef.Stats, "base_hull", 1000.0) }
+
+		stats.MaxShield = shipDef.ShieldHP
+		if stats.MaxShield == 0 { stats.MaxShield = getFloat(shipDef.Stats, "base_shield", 500.0) }
+
+		stats.MaxCapacitor = shipDef.CapacitorCapacity
+		if stats.MaxCapacitor == 0 { stats.MaxCapacitor = getFloat(shipDef.Stats, "capacitor", 100.0) }
+
+		stats.CapRecharge = shipDef.CapacitorRechargeRate
+		if stats.CapRecharge == 0 { stats.CapRecharge = 100.0 }
+
+		stats.SensorRange = getFloat(shipDef.Stats, "sensor_range", 100.0)
+		stats.Speed = getFloat(shipDef.Stats, "base_speed", 100.0)
+		stats.BioCapacity = getInt(shipDef.Stats, "bio_capacity", 50)
 	} else {
 		// Absolute fallback
 		stats.MaxHealth = 1000
+		stats.MaxShield = 500
+		stats.MaxCapacitor = 100
+		stats.CapRecharge = 20
 		stats.Speed = 100
 		stats.BioCapacity = 50
 	}
@@ -117,11 +132,67 @@ func applyModuleStats(stats *DerivedStats, item *ItemStack) {
 			stats.Speed += effectiveValue
 		case "health", "base_hull":
 			stats.MaxHealth += effectiveValue
+		case "shield", "base_shield":
+			stats.MaxShield += effectiveValue
+		case "capacitor":
+			stats.MaxCapacitor += effectiveValue
 		case "sensor_range":
 			stats.SensorRange += effectiveValue
 		case "bio_capacity":
 			stats.BioCapacity += int(effectiveValue)
 		}
+	}
+}
+
+// RegenerateShip updates the transient state of the ship (Shield/Cap) based on delta time.
+func RegenerateShip(player *Player, stats DerivedStats, dt float64) {
+	// 1. Shield Regen (Linear)
+	// Example: 1% per second
+	regenAmount := (stats.MaxShield * 0.01) * dt
+	if player.CurrentShield < stats.MaxShield {
+		player.CurrentShield += regenAmount
+		if player.CurrentShield > stats.MaxShield {
+			player.CurrentShield = stats.MaxShield
+		}
+	}
+
+	// 2. Capacitor Regen (Non-Linear / "Zombie Curve")
+	// Formula: dC/dt = (10 * MaxCap / RechargeTime) * ( sqrt(C/Max) - C/Max )
+	// RechargeTime usually ~300s? We used "CapRecharge" as a Rate or Time?
+	// In EVE, the stat is "Recharge Time". In our JSON we called it "capacitor_recharge".
+	// Let's treat stats.CapRecharge as "Recharge Time in Seconds".
+
+	if stats.MaxCapacitor > 0 && stats.CapRecharge > 0 {
+		ratio := player.CurrentCapacitor / stats.MaxCapacitor
+		if ratio < 1.0 {
+			// Avoid Sqrt of 0 or negative if empty
+			if ratio < 0 { ratio = 0 }
+
+			// EVE formula approximation
+			// Rate = (10 * Max) / Time * (sqrt(ratio) - ratio) (simplified curve)
+			// Wait, the real formula is complex.
+			// Simpler "Peaked" curve: Rate = PeakRate * 2.5 * ratio * (1 - ratio)? No.
+			// Let's use the provided Prompt formula:
+			// Rate = (10 * MaxCap) / RechargeTime * ( sqrt(Current/Max) - (Current/Max) )
+
+			rate := (10.0 * stats.MaxCapacitor) / stats.CapRecharge * (math.Sqrt(ratio) - ratio)
+
+			// If rate is negative (shouldn't be for 0 < ratio < 1), clamp 0
+			if rate < 0 { rate = 0 }
+
+			// Minimum trickle to prevent stuck at 0
+			if player.CurrentCapacitor <= 0.1 {
+				rate = stats.MaxCapacitor * 0.005 // Jump start
+			}
+
+			player.CurrentCapacitor += rate * dt
+			if player.CurrentCapacitor > stats.MaxCapacitor {
+				player.CurrentCapacitor = stats.MaxCapacitor
+			}
+		}
+	} else {
+		// Fallback Linear
+		player.CurrentCapacitor += 1.0 * dt
 	}
 }
 

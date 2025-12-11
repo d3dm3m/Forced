@@ -122,7 +122,8 @@ def main():
         out.write("- [x] **Sprint 15 (Integration):** Wired `MarketService` and `SurgeryService` to frontend UI (`MarketWindow`, `SurgeryWindow`).\n")
         out.write("- [x] **Sprint 16 (Ground):** Established Ground Gameplay Loop (20Hz UDP, Validation, Broadcasting).\n")
         out.write("- [x] **Sprint 17 (Tether):** Implemented Ground Persistence and Hangar Handoff trigger.\n")
-        out.write("- [x] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.\n\n")
+        out.write("- [x] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.\n")
+        out.write("- [x] **Sprint 18 (Mechanics):** Implemented Passive Ship Simulation (Shield/Capacitor Regen).\n\n")
 
         out.write("## The Macro-Scale Architecture (Planned)\n")
         out.write("* **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.\n")

@@ -15,11 +15,15 @@ type MapDataPayload struct {
 }
 
 type ShipStatsPayload struct {
-	CurrentHealth float64 `json:"current_health"`
-	MaxHealth     float64 `json:"max_health"`
-	BioLoad       int     `json:"bio_load"`
-	BioCapacity   int     `json:"bio_capacity"`
-	Speed         float64 `json:"speed"`
+	CurrentHealth    float64 `json:"current_health"`
+	MaxHealth        float64 `json:"max_health"`
+	CurrentShield    float64 `json:"current_shield"`
+	MaxShield        float64 `json:"max_shield"`
+	CurrentCapacitor float64 `json:"current_capacitor"`
+	MaxCapacitor     float64 `json:"max_capacitor"`
+	BioLoad          int     `json:"bio_load"`
+	BioCapacity      int     `json:"bio_capacity"`
+	Speed            float64 `json:"speed"`
 }
 
 type BuyItemPayload struct {

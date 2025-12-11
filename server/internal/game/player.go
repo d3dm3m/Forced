@@ -61,11 +61,13 @@ type Player struct {
 	Inventory     []ItemStack    `json:"inventory"`      // Changed to slice of structs
 	Ship          ShipLayout     `json:"ship_layout"`    // JSONB
 	GroundGear    GroundGear     `json:"ground_gear"`    // JSONB
-	Solium        int            `json:"solium"`         // Currency
-	Skills        map[string]int `json:"skills"`         // Ship/Space Skills
-	CurrentHealth float64        `json:"current_health"` // Ship Health (Space) or Player Health (Ground)
-	SystemID      string         `json:"system_id"`      // Current Star System (e.g. "Sol-0")
-	CreatedAt     time.Time      `json:"created_at"`
+	Solium           int            `json:"solium"`            // Currency
+	Skills           map[string]int `json:"skills"`            // Ship/Space Skills
+	CurrentHealth    float64        `json:"current_health"`    // Ship Health (Space) or Player Health (Ground)
+	CurrentShield    float64        `json:"current_shield"`    // Transient
+	CurrentCapacitor float64        `json:"current_capacitor"` // Transient
+	SystemID         string         `json:"system_id"`         // Current Star System (e.g. "Sol-0")
+	CreatedAt        time.Time      `json:"created_at"`
 }
 
 type PlayerRepository interface {

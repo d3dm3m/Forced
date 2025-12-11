@@ -153,6 +153,15 @@ func gameLoop(conn *websocket.Conn, player *game.Player) {
 		projMgr = game.NewProjectileManager()
 	}
 
+	// Initialize Stats if empty (Login)
+	initialStats := game.CalculateShipStats(player)
+	if player.CurrentShield == 0 {
+		player.CurrentShield = initialStats.MaxShield
+	}
+	if player.CurrentCapacitor == 0 {
+		player.CurrentCapacitor = initialStats.MaxCapacitor
+	}
+
 	// Setup Ticker for Game Logic (10Hz)
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
@@ -200,6 +209,11 @@ func gameLoop(conn *websocket.Conn, player *game.Player) {
 		case <-ticker.C:
 			tickCount++
 
+			// 0. Update Stats & Regeneration (Every Tick)
+			// Calculate stats every tick to ensure regen uses latest state
+			stats := game.CalculateShipStats(player)
+			game.RegenerateShip(player, stats, 0.1)
+
 			// 1. Tick Projectiles (Every Tick - 10Hz)
 			// Note: 10Hz is slow for projectiles, client interpolation is key.
 			mu.Lock()
@@ -217,10 +231,8 @@ func gameLoop(conn *websocket.Conn, player *game.Player) {
 			}
 			mu.Unlock()
 
-			// 2. Every 10 ticks (1 second), perform Stat Calculation & Bio-Load Logic
+			// 2. Every 10 ticks (1 second), perform Bio-Load Logic & Broadcast
 			if tickCount%10 == 0 {
-				stats := game.CalculateShipStats(player)
-
 				// Apply Rejection / Decay
 				if stats.RejectionRate > 0 {
 					player.CurrentHealth -= stats.RejectionRate
@@ -365,11 +377,15 @@ func sendCombatHit(conn *websocket.Conn, projID, targetID string, damage float64
 
 func sendShipStats(conn *websocket.Conn, player *game.Player, stats game.DerivedStats) {
 	payload := protocol.ShipStatsPayload{
-		CurrentHealth: player.CurrentHealth,
-		MaxHealth:     stats.MaxHealth,
-		BioLoad:       stats.CurrentBioLoad,
-		BioCapacity:   stats.BioCapacity,
-		Speed:         stats.Speed,
+		CurrentHealth:    player.CurrentHealth,
+		MaxHealth:        stats.MaxHealth,
+		CurrentShield:    player.CurrentShield,
+		MaxShield:        stats.MaxShield,
+		CurrentCapacitor: player.CurrentCapacitor,
+		MaxCapacitor:     stats.MaxCapacitor,
+		BioLoad:          stats.CurrentBioLoad,
+		BioCapacity:      stats.BioCapacity,
+		Speed:            stats.Speed,
 	}
 
 	payloadBytes, _ := json.Marshal(payload)
