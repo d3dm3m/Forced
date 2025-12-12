@@ -51,6 +51,21 @@ type GroundGear struct {
 	Talents map[string]int `json:"talents"`
 }
 
+// IndustrialStats represents the core bio-mechanical attributes.
+type IndustrialStats struct {
+	Torque  int `json:"torque"`  // Physical strength/load
+	Compute int `json:"compute"` // Processing power
+	Synapse int `json:"synapse"` // Reaction speed
+	Flux    int `json:"flux"`    // Exotic energy manipulation
+}
+
+// Motherboard represents the grid for installing Chipsets.
+type Motherboard struct {
+	Slots    int         `json:"slots"` // Total available grid size
+	Chips    []ItemStack `json:"chips"` // Installed chips
+	Stats    IndustrialStats `json:"stats"` // Aggregated stats
+}
+
 // Player represents the player state
 type Player struct {
 	ID            string         `json:"id"`
@@ -61,6 +76,7 @@ type Player struct {
 	Inventory     []ItemStack    `json:"inventory"`      // Changed to slice of structs
 	Ship          ShipLayout     `json:"ship_layout"`    // JSONB
 	GroundGear    GroundGear     `json:"ground_gear"`    // JSONB
+	Motherboard   Motherboard    `json:"motherboard"`    // JSONB (New in Sprint 21)
 	Solium           int            `json:"solium"`            // Currency
 	Skills           map[string]int `json:"skills"`            // Ship/Space Skills
 	CurrentHealth    float64        `json:"current_health"`    // Ship Health (Space) or Player Health (Ground)
@@ -175,12 +191,20 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 	// Default Health (Safe Value)
 	defaultHealth := 1000.0
 
-	// Default System
-	defaultSystem := "Sol-0"
+	// Default Motherboard
+	defaultMotherboard := Motherboard{
+		Slots: 0,
+		Chips: []ItemStack{},
+		Stats: IndustrialStats{Torque: 0, Compute: 0, Synapse: 0, Flux: 0},
+	}
+	motherboardJson, err := json.Marshal(defaultMotherboard)
+	if err != nil {
+		return nil, err
+	}
 
 	query := `
-		INSERT INTO players (username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health, system_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO players (username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, motherboard, solium, skills, current_health, system_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, created_at
 	`
 
@@ -192,6 +216,7 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 		Inventory:     defaultInventory,
 		Ship:          defaultShip,
 		GroundGear:    defaultGroundGear,
+		Motherboard:   defaultMotherboard,
 		Solium:        defaultSolium,
 		Skills:        defaultSkills,
 		CurrentHealth: defaultHealth,
@@ -200,7 +225,7 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 
 	err = db.Pool.QueryRow(context.Background(), query,
 		username, classID, defaultX, defaultY,
-		string(inventoryJson), string(shipJson), string(groundGearJson),
+		string(inventoryJson), string(shipJson), string(groundGearJson), string(motherboardJson),
 		defaultSolium, string(skillsJson), defaultHealth, defaultSystem,
 	).Scan(&p.ID, &p.CreatedAt)
 
@@ -213,7 +238,7 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 
 func (r *PostgresPlayerRepository) LoadPlayer(username string) (*Player, error) {
 	query := `
-		SELECT id, username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, solium, skills, current_health, system_id, created_at
+		SELECT id, username, class_id, position_x, position_y, inventory, ship_layout, ground_gear, motherboard, solium, skills, current_health, system_id, created_at
 		FROM players
 		WHERE username = $1
 	`
@@ -222,6 +247,7 @@ func (r *PostgresPlayerRepository) LoadPlayer(username string) (*Player, error) 
 	var inventoryBytes []byte
 	var shipBytes []byte
 	var groundGearBytes []byte
+	var motherboardBytes []byte
 	var skillsBytes []byte
 
 	err := db.Pool.QueryRow(context.Background(), query, username).Scan(
@@ -233,6 +259,7 @@ func (r *PostgresPlayerRepository) LoadPlayer(username string) (*Player, error) 
 		&inventoryBytes,
 		&shipBytes,
 		&groundGearBytes,
+		&motherboardBytes,
 		&p.Solium,
 		&skillsBytes,
 		&p.CurrentHealth,
@@ -269,6 +296,18 @@ func (r *PostgresPlayerRepository) LoadPlayer(username string) (*Player, error) 
 		p.GroundGear = GroundGear{Talents: make(map[string]int)}
 	}
 
+	if len(motherboardBytes) > 0 {
+		if err := json.Unmarshal(motherboardBytes, &p.Motherboard); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal motherboard: %w", err)
+		}
+	} else {
+		p.Motherboard = Motherboard{
+			Slots: 0,
+			Chips: []ItemStack{},
+			Stats: IndustrialStats{Torque: 0, Compute: 0, Synapse: 0, Flux: 0},
+		}
+	}
+
 	if len(skillsBytes) > 0 {
 		if err := json.Unmarshal(skillsBytes, &p.Skills); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal skills: %w", err)
@@ -301,10 +340,15 @@ func (r *PostgresPlayerRepository) SavePlayerState(player *Player) error {
 		return err
 	}
 
+	motherboardJson, err := json.Marshal(player.Motherboard)
+	if err != nil {
+		return err
+	}
+
 	query := `
 		UPDATE players
-		SET position_x = $1, position_y = $2, inventory = $3, ship_layout = $4, ground_gear = $5, solium = $6, skills = $7, current_health = $8, system_id = $9
-		WHERE id = $10
+		SET position_x = $1, position_y = $2, inventory = $3, ship_layout = $4, ground_gear = $5, motherboard = $6, solium = $7, skills = $8, current_health = $9, system_id = $10
+		WHERE id = $11
 	`
 
 	_, err = db.Pool.Exec(context.Background(), query,
@@ -313,6 +357,7 @@ func (r *PostgresPlayerRepository) SavePlayerState(player *Player) error {
 		string(inventoryJson),
 		string(shipJson),
 		string(groundGearJson),
+		string(motherboardJson),
 		player.Solium,
 		string(skillsJson),
 		player.CurrentHealth,
