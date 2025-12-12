@@ -17,6 +17,14 @@ var camera: Camera3D
 var torso: Node3D
 var slew_rate: float = 2.0 # Radians/sec, dynamic based on class
 
+# Action State Machine
+enum State { IDLE, WINDUP, BACKSWING }
+var current_state: int = State.IDLE
+var state_timer: float = 0.0
+# Stats (Should be loaded from class)
+var cast_point: float = 0.3
+var backswing: float = 0.5
+
 func _ready():
 	# Temporary: Spawn Hangar Zone for testing
 	var hangar = preload("res://src/scenes/ground/HangarZone.gd").new()
@@ -67,9 +75,28 @@ func _on_packet_received(type: String, payload: Dictionary):
 				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
 
 func _physics_process(delta):
+	# State Machine Logic
+	if current_state != State.IDLE:
+		state_timer -= delta
+		if state_timer <= 0:
+			if current_state == State.WINDUP:
+				_perform_attack()
+			elif current_state == State.BACKSWING:
+				current_state = State.IDLE
+				print("Ready.")
+
 	# Tank / RTS Control
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var target_dir = Vector3(input_dir.x, 0, input_dir.y).normalized()
+
+	# Action Canceling / Orb Walking
+	if target_dir:
+		if current_state == State.WINDUP:
+			current_state = State.IDLE
+			print("Attack Cancelled!")
+		elif current_state == State.BACKSWING:
+			current_state = State.IDLE
+			print("Backswing Cancelled (Orb Walk)!")
 
 	if target_dir:
 		# 1. Rotate Body towards Target
@@ -196,17 +223,30 @@ func _raycast_target(mouse_pos):
 			_update_reticle()
 
 func _fire_weapon():
+	if current_state != State.IDLE:
+		return
+
 	if current_target_id == "":
 		print("No Target!")
 		return
 
-	print("Firing at ", current_target_id)
+	# Start Windup
+	current_state = State.WINDUP
+	state_timer = cast_point
+	print("Winding up...")
+
+func _perform_attack():
+	print("Fired at ", current_target_id)
 
 	# Visuals: Muzzle Flash (Placeholder)
 
 	# Network
 	var payload = { "target_id": current_target_id }
 	NetworkManager.send_udp_packet("PACKET_TYPE_GROUND_ATTACK", payload)
+
+	# Enter Backswing
+	current_state = State.BACKSWING
+	state_timer = backswing
 
 func _update_reticle():
 	# Visual feedback for target (Simple print for now or highlight shader)

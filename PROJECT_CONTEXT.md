@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-11 14:45:07
+**Last Updated:** 2025-12-12 00:33:07
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -83,7 +83,9 @@ graph TD
 - [x] **Sprint 17 (Tether):** Implemented Ground Persistence and Hangar Handoff trigger.
 - [x] **Sprint 18 (Expansion):** Implemented Gatekeeper Service and SystemID persistence.
 - [x] **Sprint 18 (Mechanics):** Implemented Passive Ship Simulation (Shield/Capacitor Regen).
-- [ ] **Sprint 19 (Ground):** Tactical Physics & Turn-Rate Movement.
+- [x] **Sprint 19 (Ground):** Tactical Physics & Turn-Rate Movement.
+- [x] **Sprint 19.2 (Ground):** Client-Side Raycast Fog of War (Shadow System).
+- [x] **Sprint 19.3 (Ground):** Action State Machine (Cast Point logic).
 
 ## The Macro-Scale Architecture (Planned)
 * **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.
@@ -190,6 +192,7 @@ graph TD
                     GroundEntityManager.gd
                     HangarZone.gd
             vfx/
+                FogOfWar.gd
                 SanityController.gd
 ```
 
@@ -204,7 +207,7 @@ graph TD
 - **.sql**: 5
 - **.go**: 23
 - **.gdshader**: 1
-- **.gd**: 17
+- **.gd**: 18
 
 ## File Contents
 
@@ -317,8 +320,8 @@ if __name__ == "__main__":
       "turn_rate": 0.6,
       "cast_point": 0.3,
       "backswing": 0.5,
-      "vision_range_day": 1200,
-      "vision_range_night": 800
+      "vision_range_day": 20,
+      "vision_range_night": 15
     },
     "slots": 4
   },
@@ -341,8 +344,8 @@ if __name__ == "__main__":
       "turn_rate": 0.75,
       "cast_point": 0.3,
       "backswing": 0.4,
-      "vision_range_day": 1200,
-      "vision_range_night": 800
+      "vision_range_day": 22,
+      "vision_range_night": 18
     },
     "slots": 6
   },
@@ -365,8 +368,8 @@ if __name__ == "__main__":
       "turn_rate": 0.9,
       "cast_point": 0.2,
       "backswing": 0.3,
-      "vision_range_day": 1400,
-      "vision_range_night": 1000
+      "vision_range_day": 25,
+      "vision_range_night": 20
     },
     "slots": 4
   },
@@ -5251,6 +5254,14 @@ var camera: Camera3D
 var torso: Node3D
 var slew_rate: float = 2.0 # Radians/sec, dynamic based on class
 
+# Action State Machine
+enum State { IDLE, WINDUP, BACKSWING }
+var current_state: int = State.IDLE
+var state_timer: float = 0.0
+# Stats (Should be loaded from class)
+var cast_point: float = 0.3
+var backswing: float = 0.5
+
 func _ready():
 	# Temporary: Spawn Hangar Zone for testing
 	var hangar = preload("res://src/scenes/ground/HangarZone.gd").new()
@@ -5268,6 +5279,27 @@ func _ready():
 	torso.position.y = 0.75
 	add_child(torso)
 
+	# Fog of War (Vision Sensor)
+	var fog_script = preload("res://src/vfx/FogOfWar.gd")
+	var fog = fog_script.new()
+	torso.add_child(fog)
+	# Default range, ideally updated from Class Stats in Login
+	fog.setup(20.0)
+	fog.position.y = 0.5 # High on torso
+	fog.rotation.x = -0.1 # Slight tilt down
+
+	# Atmosphere (WorldEnvironment)
+	# Force pitch black ambient to make Fog of War work
+	var world_env = WorldEnvironment.new()
+	var env = Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color.BLACK
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color.BLACK
+	env.ambient_light_energy = 0.0
+	world_env.environment = env
+	add_child(world_env)
+
 	# Listen for Gear
 	NetworkManager.connect("packet_received", _on_packet_received)
 
@@ -5280,9 +5312,28 @@ func _on_packet_received(type: String, payload: Dictionary):
 				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
 
 func _physics_process(delta):
+	# State Machine Logic
+	if current_state != State.IDLE:
+		state_timer -= delta
+		if state_timer <= 0:
+			if current_state == State.WINDUP:
+				_perform_attack()
+			elif current_state == State.BACKSWING:
+				current_state = State.IDLE
+				print("Ready.")
+
 	# Tank / RTS Control
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var target_dir = Vector3(input_dir.x, 0, input_dir.y).normalized()
+
+	# Action Canceling / Orb Walking
+	if target_dir:
+		if current_state == State.WINDUP:
+			current_state = State.IDLE
+			print("Attack Cancelled!")
+		elif current_state == State.BACKSWING:
+			current_state = State.IDLE
+			print("Backswing Cancelled (Orb Walk)!")
 
 	if target_dir:
 		# 1. Rotate Body towards Target
@@ -5409,17 +5460,30 @@ func _raycast_target(mouse_pos):
 			_update_reticle()
 
 func _fire_weapon():
+	if current_state != State.IDLE:
+		return
+
 	if current_target_id == "":
 		print("No Target!")
 		return
 
-	print("Firing at ", current_target_id)
+	# Start Windup
+	current_state = State.WINDUP
+	state_timer = cast_point
+	print("Winding up...")
+
+func _perform_attack():
+	print("Fired at ", current_target_id)
 
 	# Visuals: Muzzle Flash (Placeholder)
 
 	# Network
 	var payload = { "target_id": current_target_id }
 	NetworkManager.send_udp_packet("PACKET_TYPE_GROUND_ATTACK", payload)
+
+	# Enter Backswing
+	current_state = State.BACKSWING
+	state_timer = backswing
 
 func _update_reticle():
 	# Visual feedback for target (Simple print for now or highlight shader)
@@ -5568,6 +5632,35 @@ func _on_body_entered(body):
 		NetworkManager.send_udp_packet("REQUEST_LAUNCH", {})
 		# Note: The server will respond with PACKET_TYPE_LAUNCH_GRANTED.
 		# NetworkManager should handle that to switch scenes.
+
+```
+
+### ./client/src/vfx/FogOfWar.gd
+```gd
+extends Node3D
+
+var light: SpotLight3D
+
+func _ready():
+	light = SpotLight3D.new()
+	add_child(light)
+
+	# Visual Configuration
+	light.shadow_enabled = true
+	light.spot_angle = 60.0
+	light.light_energy = 5.0 # High contrast against dark world
+	light.light_color = Color(0.9, 0.95, 1.0) # Cold industrial white
+
+	# Optimization
+	light.shadow_bias = 0.05
+
+	# Atmosphere
+	# We assume WorldEnvironment is handled by the scene, but we can enforce local darkness if needed.
+	# For MVP, the light itself provides the "see" part.
+
+func setup(range_val: float):
+	if light:
+		light.spot_range = range_val
 
 ```
 
