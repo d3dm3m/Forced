@@ -128,7 +128,12 @@ def main():
         out.write("- [x] **Sprint 19.2 (Ground):** Client-Side Raycast Fog of War (Shadow System).\n")
         out.write("- [x] **Sprint 19.3 (Ground):** Action State Machine (Cast Point logic).\n")
         out.write("- [x] **Sprint 19.4 (Ground):** Ground Damage Resolution & Respawn.\n")
-        out.write("- [ ] **Sprint 20 (Data):** Implemented Industrial Stats & 10-Class Roster.\n\n")
+        out.write("- [x] **Sprint 20 (Data):** Implemented Industrial Stats & 10-Class Roster.\n")
+        out.write("- [ ] **Sprint 21 (Data):** The Motherboard (Circuit Grid & Chips).\n")
+        out.write("- [ ] **Sprint 22 (Logic):** Stat Wiring (Torque/Compute/Synapse/Flux).\n")
+        out.write("- [ ] **Sprint 23 (Client):** The Configurator UI.\n")
+        out.write("- [ ] **Sprint 24 (Server):** Server Authority (Action State Validation).\n")
+        out.write("- [ ] **Sprint 25 (Logic):** Ability System (Breacher, Null-Walker, Sapper skills).\n\n")
 
         out.write("## The Macro-Scale Architecture (Planned)\n")
         out.write("* **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.\n")
@@ -144,7 +149,7 @@ def main():
         out.write("- [x] **Space Core Combat Logic Integration:** Wired up Angular Ballistics and Signature Analysis to the main game loop.\n")
         out.write("- [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.\n")
         out.write("- [ ] **Ground Core Refactor:** Implement RTS Turn-Rate Physics & Raycast Vision.\n")
-        out.write("- [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).\n\n")
+        out.write("- [ ] **Next Goal:** Sprint 21: The Motherboard (Perk Architecture).\n\n")
 
         out.write("## Directory Tree\n\n```\n")
         out.write(get_tree_structure("."))

@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-12 02:53:18
+**Last Updated:** 2025-12-12 03:46:52
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -87,7 +87,12 @@ graph TD
 - [x] **Sprint 19.2 (Ground):** Client-Side Raycast Fog of War (Shadow System).
 - [x] **Sprint 19.3 (Ground):** Action State Machine (Cast Point logic).
 - [x] **Sprint 19.4 (Ground):** Ground Damage Resolution & Respawn.
-- [ ] **Sprint 20 (Data):** Implemented Industrial Stats & 10-Class Roster.
+- [x] **Sprint 20 (Data):** Implemented Industrial Stats & 10-Class Roster.
+- [ ] **Sprint 21 (Data):** The Motherboard (Circuit Grid & Chips).
+- [ ] **Sprint 22 (Logic):** Stat Wiring (Torque/Compute/Synapse/Flux).
+- [ ] **Sprint 23 (Client):** The Configurator UI.
+- [ ] **Sprint 24 (Server):** Server Authority (Action State Validation).
+- [ ] **Sprint 25 (Logic):** Ability System (Breacher, Null-Walker, Sapper skills).
 
 ## The Macro-Scale Architecture (Planned)
 * **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.
@@ -103,7 +108,7 @@ graph TD
 - [x] **Space Core Combat Logic Integration:** Wired up Angular Ballistics and Signature Analysis to the main game loop.
 - [ ] **Gatekeeper Real-Implementation:** Gatekeeper currently uses a mocked routing table; needs Redis backing.
 - [ ] **Ground Core Refactor:** Implement RTS Turn-Rate Physics & Raycast Vision.
-- [ ] **Next Goal:** Strategic Directive - Future Proofing (Architecture Stubs & Migrations).
+- [ ] **Next Goal:** Sprint 21: The Motherboard (Perk Architecture).
 
 ## Directory Tree
 
@@ -4509,6 +4514,31 @@ To handle the dual gameplay loops (Grid-based Horror vs. Vector-based Stealth) w
 *   **Weapon SFX:** Distinct sounds for Ballistic (Thud) vs Energy (Hum/Crack).
 *   **UI SFX:** "Click" vs "Datastream" sounds for the different UI paradigms.
 
+
+## Phase 4: The Industrial Engine (Months 7-8)
+**Goal:** Transform the MVP into a "Survival Strategy RPG" by wiring stats to gameplay logic and enforcing server authority.
+
+*   **Sprint 21 (Weeks 21-22): The Motherboard**
+    *   Implement the "Circuit Grid" inventory backend.
+    *   Update `GroundGear` to support socketed "Chips" (Items with stat modifiers).
+*   **Sprint 22 (Weeks 23-24): Stat Wiring**
+    *   Connect Torque, Compute, Synapse, Flux to game logic.
+        *   **Torque:** Inventory Mass Limit / Recoil.
+        *   **Compute:** Crafting Speed / Drone Count.
+        *   **Synapse:** Turn Rate / Cast Point speed.
+        *   **Flux:** Shield Regen / Ability Cooldowns.
+*   **Sprint 23 (Weeks 25-26): The Configurator**
+    *   Build the Client UI for the Motherboard.
+    *   Drag-and-drop Chips into Sockets to change stats dynamically.
+*   **Sprint 24 (Weeks 27-28): Server Authority**
+    *   Implement server-side validation for the Action State Machine.
+    *   Reject packets if the player is in Backswing or Windup.
+*   **Sprint 25 (Weeks 29-30): Ability System**
+    *   Create a generic `AbilityManager` on the server.
+    *   Implement the first 3 unique skills:
+        *   **Breacher:** Phalanx Shield (Directional damage reduction).
+        *   **Null-Walker:** Phase Shift (Teleport/Disjoint).
+        *   **Sapper:** Deploy Turret (Spawn Entity).
 
 ```
 

@@ -77,3 +77,29 @@
 *   **The Sound of Entropy:** A dynamic loop of static/screams that increases volume with Low Sanity.
 *   **Weapon SFX:** Distinct sounds for Ballistic (Thud) vs Energy (Hum/Crack).
 *   **UI SFX:** "Click" vs "Datastream" sounds for the different UI paradigms.
+
+
+## Phase 4: The Industrial Engine (Months 7-8)
+**Goal:** Transform the MVP into a "Survival Strategy RPG" by wiring stats to gameplay logic and enforcing server authority.
+
+*   **Sprint 21 (Weeks 21-22): The Motherboard**
+    *   Implement the "Circuit Grid" inventory backend.
+    *   Update `GroundGear` to support socketed "Chips" (Items with stat modifiers).
+*   **Sprint 22 (Weeks 23-24): Stat Wiring**
+    *   Connect Torque, Compute, Synapse, Flux to game logic.
+        *   **Torque:** Inventory Mass Limit / Recoil.
+        *   **Compute:** Crafting Speed / Drone Count.
+        *   **Synapse:** Turn Rate / Cast Point speed.
+        *   **Flux:** Shield Regen / Ability Cooldowns.
+*   **Sprint 23 (Weeks 25-26): The Configurator**
+    *   Build the Client UI for the Motherboard.
+    *   Drag-and-drop Chips into Sockets to change stats dynamically.
+*   **Sprint 24 (Weeks 27-28): Server Authority**
+    *   Implement server-side validation for the Action State Machine.
+    *   Reject packets if the player is in Backswing or Windup.
+*   **Sprint 25 (Weeks 29-30): Ability System**
+    *   Create a generic `AbilityManager` on the server.
+    *   Implement the first 3 unique skills:
+        *   **Breacher:** Phalanx Shield (Directional damage reduction).
+        *   **Null-Walker:** Phase Shift (Teleport/Disjoint).
+        *   **Sapper:** Deploy Turret (Spawn Entity).
