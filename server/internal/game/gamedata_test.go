@@ -14,31 +14,34 @@ func TestLoadGameData(t *testing.T) {
 	LoadGameData()
 
 	// 3. Assertions
-	// Check Marine
-	marine, ok := Classes["marine"]
+	// Check Breacher
+	breacher, ok := Classes["breacher"]
 	if !ok {
-		t.Fatalf("Expected 'marine' class to be loaded")
+		t.Fatalf("Expected 'breacher' class to be loaded")
 	}
-	if marine.Stats.Health != 150 {
-		t.Errorf("Expected Marine HP 150, got %d", marine.Stats.Health)
+	if breacher.Stats.Health != 200 {
+		t.Errorf("Expected Breacher HP 200, got %d", breacher.Stats.Health)
+	}
+	if breacher.Stats.Torque != 8 {
+		t.Errorf("Expected Breacher Torque 8, got %d", breacher.Stats.Torque)
 	}
 
-	// Check Sapper
+	// Check Sapper (Syndicate)
 	sapper, ok := Classes["sapper"]
 	if !ok {
 		t.Fatalf("Expected 'sapper' class to be loaded")
 	}
-	if sapper.Slots != 6 {
-		t.Errorf("Expected Sapper Slots 6, got %d", sapper.Slots)
+	if sapper.Slots != 8 {
+		t.Errorf("Expected Sapper Slots 8, got %d", sapper.Slots)
 	}
 
-	// Check Frigate
-	frigate, ok := Classes["frigate_ace"]
+	// Check Null-Walker
+	walker, ok := Classes["null_walker"]
 	if !ok {
-		t.Fatalf("Expected 'frigate_ace' class to be loaded")
+		t.Fatalf("Expected 'null_walker' class to be loaded")
 	}
-	if frigate.Type != "Space" {
-		t.Errorf("Expected Frigate Type 'Space', got %s", frigate.Type)
+	if walker.Stats.Flux != 10 {
+		t.Errorf("Expected Null-Walker Flux 10, got %d", walker.Stats.Flux)
 	}
 
 	// Check Item

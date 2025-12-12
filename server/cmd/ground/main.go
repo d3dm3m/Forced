@@ -89,7 +89,7 @@ func handlePacket(conn *net.UDPConn, addr *net.UDPAddr, data []byte, repo game.P
 		if err := json.Unmarshal(packet.Payload, &loginPayload); err == nil {
 			player, err := repo.LoadPlayer(loginPayload.Username)
 			if err != nil || player == nil {
-				if player == nil { player, _ = repo.CreatePlayer(loginPayload.Username, "marine") }
+				if player == nil { player, _ = repo.CreatePlayer(loginPayload.Username, "breacher") }
 			}
 			if player == nil { return }
 

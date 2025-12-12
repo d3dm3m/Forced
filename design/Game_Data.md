@@ -1,41 +1,43 @@
 # Game Data: The RPG Bible
 
-## 1. Class Definitions (The Trinity)
-*Classes are defined by the "Suit" (Ground) or "License" (Space) currently equipped. Players can switch roles by changing gear at a station.*
+## 1. Class Definitions (The Industrial Roster)
+*The progression system has pivoted to "Industrial Bio-Horror". Characters are defined by their functional output.*
 
-### Ground Classes (The Exosuit)
-1.  **Marine (Archetype: The Wall)**
-    *   **Role:** Tank / Frontline.
-    *   **Playstyle:** Heavy Armor usage. Uses **Taunt** shouts to draw aggro from swarms.
-    *   **Signature Weapons:** Auto-Shotguns, Riot Shields.
-    *   **Passive:** *Adrenaline Rush* (Stamina regenerates faster when taking damage).
-2.  **Sapper (Archetype: The Architect)**
-    *   **Role:** Area Denial / Support.
-    *   **Playstyle:** Constructs temporary hardpoints. Controls the battlefield geometry.
-    *   **Signature Equipment:** Sentry Turrets, Barricade Walls, Satchel Charges.
-    *   **Passive:** *Efficient Construction* (Structures cost 20% less resource to build).
-3.  **Xeno-Biologist (Archetype: The Witch)**
-    *   **Role:** Healer / Buffer.
-    *   **Playstyle:** "Combat Alchemist." Harvests biomass from fallen enemies to brew instant injectors.
-    *   **Signature Equipment:** Dart Gun (Buffs allies, Debuffs enemies), Harvester Drone.
-    *   **Passive:** *Necrotic Harvest* (Kills grant a temporary stack of "Biomass" used for healing).
+### The United Sol Federation (USF)
+*   **Breacher (Heavy Tank):** High Torque. Uses hydraulic rams and riot shields to force entry.
+*   **Gunner (DPS):** Balanced. Standard infantry output. Good sustained fire.
+*   **Field Medic (Support):** High Compute. Uses advanced triage computers to stabilize critical wounds.
+*   **Operator (Specialist):** High Synapse. Drone controller and electronic warfare specialist.
 
-### Space Classes (The License)
-1.  **Frigate Ace (Archetype: The Needle)**
-    *   **Role:** Tackle / Scout.
-    *   **Playstyle:** Speed tanking (moving so fast turrets can't track). Locking down targets for the fleet.
-    *   **Signature Systems:** Warp Disruptors, Stasis Webs.
-    *   **Passive:** *Inertial Dampening* (+50% Agility/Turn Speed).
-2.  **Cruiser Captain (Archetype: The Anvil)**
-    *   **Role:** DPS / Line Ship.
-    *   **Playstyle:** Broadside combat. Rotating shield quadrants to mitigate incoming fire.
-    *   **Signature Systems:** Flak Batteries (Anti-Fighter), Heavy Shield Boosters.
-    *   **Passive:** *Grid Stabilization* (+10% Shield HP).
-3.  **Industrialist (Archetype: The Vein)**
-    *   **Role:** Logistics / Economy.
-    *   **Playstyle:** Mining high-value nodes in dangerous space. Evading capture.
-    *   **Signature Systems:** Mining Lasers, Cargo Expanders, "Blockade Runner" Cloak (Short duration invisibility).
-    *   **Passive:** *Yield Optimization* (+15% Mining Laser Yield).
+### The Celestial Concord
+*   **Flesh-Weaver (Healer):** High Flux/Synapse. Knits organic matter together using energy fields.
+*   **Abomination (Melee Tank):** Extreme Torque. A gene-spliced berserker. Fast movement, low defense.
+
+### The Void Syndicate
+*   **Scavenger (Looter):** High Synapse. Evasion tank and loot specialist.
+*   **Sapper (Builder):** Balanced Torque/Compute. Constructs turrets and defenses.
+
+### The Null-State
+*   **Null-Walker (Caster):** Extreme Flux. Warps reality to deal damage. Glass cannon.
+*   **Reality Anchor (Support Tank):** High Flux/Defense. Stabilizes local physics to prevent anomalies.
+
+---
+
+## 1.5. Industrial Attributes
+*Instead of Strength/Intelligence, we measure capacity.*
+
+*   **Torque (Physical Strength):**
+    *   Governs: Carry Capacity, Recoil Control, Heavy Weapon usage.
+    *   *Theme:* Hydraulic pressure, muscle density.
+*   **Compute (Tech Skill):**
+    *   Governs: Drone Limit, Crafting Speed, Hacking.
+    *   *Theme:* CPU cycles, neural implants.
+*   **Synapse (Reaction Speed):**
+    *   Governs: Turn Rate, Evasion, Critical Hit Chance.
+    *   *Theme:* Nervous system conductivity, combat stims.
+*   **Flux (Energy Output):**
+    *   Governs: Shield Regen, Ability Power, Capacitor Recharge.
+    *   *Theme:* Reactor output, psionic resonance.
 
 ---
 
@@ -58,6 +60,11 @@
 *   **Bonus 1:** **Dirty Hacks** (+15% E-War Strength).
 *   **Bonus 2:** **Scavenger Protocols** (+10% Loot Drop Rate).
 *   **Penalty:** **Scrap Hulls** (-10% Structure HP). Ships are fragile.
+
+### The Null-State
+*   **Philosophy:** Entropy & Silence.
+*   **Bonus:** **Phase Shift** (Chance to ignore damage).
+*   **Penalty:** **Instability** (Healing is 50% less effective).
 
 ---
 

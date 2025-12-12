@@ -9,10 +9,16 @@ import (
 // StatBlock represents the base statistics for a class or entity
 type StatBlock struct {
 	Health      int     `json:"health"`
-	Speed       int     `json:"speed"` // Ground speed or Space agility
+	Speed       int     `json:"speed"`   // Ground speed or Space agility
 	Stamina     int     `json:"stamina"` // Used for ground actions
 	Defense     int     `json:"defense"`
 	SensorRange float64 `json:"sensor_range"` // For Space mainly
+
+	// Industrial Expansion Stats
+	Torque  int `json:"torque"`  // Physical Strength / Carry Capacity
+	Compute int `json:"compute"` // Tech Skill / Drone Limit
+	Synapse int `json:"synapse"` // Reaction Speed / Turn Rate
+	Flux    int `json:"flux"`    // Energy Output / Shield Regen
 }
 
 // ClassDefinition mirrors the Class Definitions in Game_Data.md

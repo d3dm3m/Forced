@@ -1,6 +1,6 @@
 # PROJECT CONTEXT
 
-**Last Updated:** 2025-12-12 00:33:07
+**Last Updated:** 2025-12-12 02:53:18
 
 ## 🤖 AI Persona Roster
 * **The Architect:** System Design, Database Schema, Network Topology. (Use for: Infrastructure)
@@ -86,6 +86,8 @@ graph TD
 - [x] **Sprint 19 (Ground):** Tactical Physics & Turn-Rate Movement.
 - [x] **Sprint 19.2 (Ground):** Client-Side Raycast Fog of War (Shadow System).
 - [x] **Sprint 19.3 (Ground):** Action State Machine (Cast Point logic).
+- [x] **Sprint 19.4 (Ground):** Ground Damage Resolution & Respawn.
+- [ ] **Sprint 20 (Data):** Implemented Industrial Stats & 10-Class Roster.
 
 ## The Macro-Scale Architecture (Planned)
 * **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.
@@ -302,133 +304,214 @@ if __name__ == "__main__":
 ```json
 [
   {
-    "id": "marine",
-    "name": "Marine",
+    "id": "breacher",
+    "name": "USF Breacher",
+    "faction": "USF",
     "type": "Ground",
-    "description": "Tank / Frontline. Uses Taunt shouts.",
-    "archetype": "The Wall",
+    "archetype": "Heavy Tank",
+    "description": "Frontline siege unit. High torque allows for heavy armor.",
+    "stats": {
+      "health": 200,
+      "speed": 8,
+      "defense": 30,
+      "torque": 8,
+      "compute": 2,
+      "synapse": 3,
+      "flux": 2,
+      "turn_rate": 0.4,
+      "scan_resolution": 100.0,
+      "signature_radius": 20.0
+    },
+    "slots": 4
+  },
+  {
+    "id": "gunner",
+    "name": "USF Gunner",
+    "faction": "USF",
+    "type": "Ground",
+    "archetype": "DPS",
+    "description": "Mobile weapons platform. Balanced stats for versatility.",
     "stats": {
       "health": 150,
       "speed": 10,
-      "stamina": 100,
       "defense": 20,
-      "sensor_range": 0,
-      "mass": 200.0,
-      "slew_rate": 2.0,
-      "scan_resolution": 100.0,
-      "signature_radius": 10.0,
+      "torque": 6,
+      "compute": 4,
+      "synapse": 5,
+      "flux": 3,
       "turn_rate": 0.6,
-      "cast_point": 0.3,
-      "backswing": 0.5,
-      "vision_range_day": 20,
-      "vision_range_night": 15
+      "scan_resolution": 150.0,
+      "signature_radius": 15.0
     },
     "slots": 4
   },
   {
-    "id": "sapper",
-    "name": "Sapper",
+    "id": "medic",
+    "name": "USF Field Medic",
+    "faction": "USF",
     "type": "Ground",
-    "description": "Area Denial / Support. Constructs hardpoints.",
-    "archetype": "The Architect",
+    "archetype": "Support",
+    "description": "Combat lifesaver. High Compute for medical tech.",
     "stats": {
-      "health": 100,
+      "health": 120,
       "speed": 12,
-      "stamina": 100,
-      "defense": 10,
-      "sensor_range": 0,
-      "mass": 150.0,
-      "slew_rate": 4.0,
+      "defense": 15,
+      "torque": 3,
+      "compute": 7,
+      "synapse": 4,
+      "flux": 4,
+      "turn_rate": 0.7,
       "scan_resolution": 200.0,
-      "signature_radius": 5.0,
-      "turn_rate": 0.75,
-      "cast_point": 0.3,
-      "backswing": 0.4,
-      "vision_range_day": 22,
-      "vision_range_night": 18
-    },
-    "slots": 6
-  },
-  {
-    "id": "biologist",
-    "name": "Xeno-Biologist",
-    "type": "Ground",
-    "description": "Healer / Buffer. Harvests biomass.",
-    "archetype": "The Witch",
-    "stats": {
-      "health": 80,
-      "speed": 14,
-      "stamina": 120,
-      "defense": 5,
-      "sensor_range": 0,
-      "mass": 80.0,
-      "slew_rate": 8.0,
-      "scan_resolution": 400.0,
-      "signature_radius": 2.0,
-      "turn_rate": 0.9,
-      "cast_point": 0.2,
-      "backswing": 0.3,
-      "vision_range_day": 25,
-      "vision_range_night": 20
-    },
-    "slots": 4
-  },
-  {
-    "id": "frigate_ace",
-    "name": "Frigate Ace",
-    "type": "Space",
-    "description": "Tackle / Scout. Speed tanking.",
-    "archetype": "The Needle",
-    "stats": {
-      "health": 500,
-      "speed": 50,
-      "stamina": 0,
-      "defense": 10,
-      "sensor_range": 100.0,
-      "mass": 1000.0,
-      "slew_rate": 1.0,
-      "scan_resolution": 500.0,
-      "signature_radius": 50.0
-    },
-    "slots": 3
-  },
-  {
-    "id": "cruiser_captain",
-    "name": "Cruiser Captain",
-    "type": "Space",
-    "description": "DPS / Line Ship. Broadside combat.",
-    "archetype": "The Anvil",
-    "stats": {
-      "health": 2000,
-      "speed": 20,
-      "stamina": 0,
-      "defense": 50,
-      "sensor_range": 80.0,
-      "mass": 5000.0,
-      "slew_rate": 0.5,
-      "scan_resolution": 200.0,
-      "signature_radius": 200.0
+      "signature_radius": 12.0
     },
     "slots": 5
   },
   {
-    "id": "industrialist",
-    "name": "Industrialist",
-    "type": "Space",
-    "description": "Logistics / Economy. Mining.",
-    "archetype": "The Vein",
+    "id": "operator",
+    "name": "USF Operator",
+    "faction": "USF",
+    "type": "Ground",
+    "archetype": "Specialist",
+    "description": "Tactical drone controller. High Synapse and Compute.",
     "stats": {
-      "health": 1200,
-      "speed": 15,
-      "stamina": 0,
-      "defense": 30,
-      "sensor_range": 60.0,
-      "mass": 8000.0,
-      "slew_rate": 0.2,
-      "scan_resolution": 100.0,
-      "signature_radius": 300.0
+      "health": 100,
+      "speed": 12,
+      "defense": 10,
+      "torque": 2,
+      "compute": 8,
+      "synapse": 7,
+      "flux": 3,
+      "turn_rate": 0.8,
+      "scan_resolution": 300.0,
+      "signature_radius": 10.0
+    },
+    "slots": 6
+  },
+  {
+    "id": "flesh_weaver",
+    "name": "Concord Flesh-Weaver",
+    "faction": "Celestial Concord",
+    "type": "Ground",
+    "archetype": "Healer",
+    "description": "Bio-organic healer. Uses Flux to knit flesh.",
+    "stats": {
+      "health": 140,
+      "speed": 11,
+      "defense": 10,
+      "torque": 3,
+      "compute": 3,
+      "synapse": 6,
+      "flux": 8,
+      "turn_rate": 0.7,
+      "scan_resolution": 250.0,
+      "signature_radius": 14.0
+    },
+    "slots": 4
+  },
+  {
+    "id": "abomination",
+    "name": "Concord Abomination",
+    "faction": "Celestial Concord",
+    "type": "Ground",
+    "archetype": "Melee Tank",
+    "description": "Gene-spliced monstrosity. Extreme Torque.",
+    "stats": {
+      "health": 250,
+      "speed": 14,
+      "defense": 5,
+      "torque": 10,
+      "compute": 1,
+      "synapse": 8,
+      "flux": 1,
+      "turn_rate": 0.9,
+      "scan_resolution": 50.0,
+      "signature_radius": 25.0
+    },
+    "slots": 2
+  },
+  {
+    "id": "scavenger",
+    "name": "Syndicate Scavenger",
+    "faction": "Void Syndicate",
+    "type": "Ground",
+    "archetype": "Stealth/Loot",
+    "description": "Opportunistic raider. High Synapse for evasion.",
+    "stats": {
+      "health": 90,
+      "speed": 16,
+      "defense": 5,
+      "torque": 4,
+      "compute": 5,
+      "synapse": 9,
+      "flux": 2,
+      "turn_rate": 1.2,
+      "scan_resolution": 200.0,
+      "signature_radius": 8.0
+    },
+    "slots": 6
+  },
+  {
+    "id": "sapper",
+    "name": "Syndicate Sapper",
+    "faction": "Void Syndicate",
+    "type": "Ground",
+    "archetype": "Builder",
+    "description": "Defense constructor. Balances Torque and Compute.",
+    "stats": {
+      "health": 110,
+      "speed": 10,
+      "defense": 15,
+      "torque": 6,
+      "compute": 6,
+      "synapse": 3,
+      "flux": 3,
+      "turn_rate": 0.5,
+      "scan_resolution": 150.0,
+      "signature_radius": 15.0
     },
     "slots": 8
+  },
+  {
+    "id": "null_walker",
+    "name": "Null-Walker",
+    "faction": "Null-State",
+    "type": "Ground",
+    "archetype": "Caster",
+    "description": "Reality warper. Pure Flux output.",
+    "stats": {
+      "health": 80,
+      "speed": 10,
+      "defense": 0,
+      "torque": 1,
+      "compute": 5,
+      "synapse": 4,
+      "flux": 10,
+      "turn_rate": 0.6,
+      "scan_resolution": 400.0,
+      "signature_radius": 30.0
+    },
+    "slots": 3
+  },
+  {
+    "id": "reality_anchor",
+    "name": "Reality Anchor",
+    "faction": "Null-State",
+    "type": "Ground",
+    "archetype": "Support Tank",
+    "description": "Stabilizes local physics. High Flux/Defense.",
+    "stats": {
+      "health": 180,
+      "speed": 6,
+      "defense": 40,
+      "torque": 5,
+      "compute": 3,
+      "synapse": 2,
+      "flux": 9,
+      "turn_rate": 0.3,
+      "scan_resolution": 100.0,
+      "signature_radius": 22.0
+    },
+    "slots": 4
   }
 ]
 
@@ -1038,6 +1121,38 @@ func CalculateLockTime(sourceScanRes float64, targetSCS float64) float64 {
 	return sourceScanRes / targetSCS
 }
 
+// ResolveGroundDamage calculates damage for ground combat based on stats.
+func ResolveGroundDamage(attacker *Player, target *Player) float64 {
+	// 1. Get Weapon Damage
+	weaponDamage := 5.0 // Default Unarmed
+	var itemID string
+
+	if attacker.GroundGear.PrimaryWeapon != nil {
+		itemID = attacker.GroundGear.PrimaryWeapon.ItemID
+	} else if attacker.GroundGear.Sidearm != nil {
+		itemID = attacker.GroundGear.Sidearm.ItemID
+	}
+
+	if itemDef, ok := Items[itemID]; ok {
+		if val, ok := itemDef.Stats["damage"]; ok {
+			weaponDamage = val
+		}
+	}
+
+	// 2. Get Target Defense
+	defense := 0.0
+	if classDef, ok := Classes[target.ClassID]; ok {
+		defense = float64(classDef.Stats.Defense)
+	}
+
+	// 3. Calculate Mitigation (MOBA Formula)
+	// Damage Multiplier = 100 / (100 + Defense)
+	multiplier := 100.0 / (100.0 + defense)
+
+	finalDamage := weaponDamage * multiplier
+	return finalDamage
+}
+
 ```
 
 ### ./server/internal/game/mechanics.go
@@ -1619,10 +1734,16 @@ import (
 // StatBlock represents the base statistics for a class or entity
 type StatBlock struct {
 	Health      int     `json:"health"`
-	Speed       int     `json:"speed"` // Ground speed or Space agility
+	Speed       int     `json:"speed"`   // Ground speed or Space agility
 	Stamina     int     `json:"stamina"` // Used for ground actions
 	Defense     int     `json:"defense"`
 	SensorRange float64 `json:"sensor_range"` // For Space mainly
+
+	// Industrial Expansion Stats
+	Torque  int `json:"torque"`  // Physical Strength / Carry Capacity
+	Compute int `json:"compute"` // Tech Skill / Drone Limit
+	Synapse int `json:"synapse"` // Reaction Speed / Turn Rate
+	Flux    int `json:"flux"`    // Energy Output / Shield Regen
 }
 
 // ClassDefinition mirrors the Class Definitions in Game_Data.md
@@ -1808,31 +1929,34 @@ func TestLoadGameData(t *testing.T) {
 	LoadGameData()
 
 	// 3. Assertions
-	// Check Marine
-	marine, ok := Classes["marine"]
+	// Check Breacher
+	breacher, ok := Classes["breacher"]
 	if !ok {
-		t.Fatalf("Expected 'marine' class to be loaded")
+		t.Fatalf("Expected 'breacher' class to be loaded")
 	}
-	if marine.Stats.Health != 150 {
-		t.Errorf("Expected Marine HP 150, got %d", marine.Stats.Health)
+	if breacher.Stats.Health != 200 {
+		t.Errorf("Expected Breacher HP 200, got %d", breacher.Stats.Health)
+	}
+	if breacher.Stats.Torque != 8 {
+		t.Errorf("Expected Breacher Torque 8, got %d", breacher.Stats.Torque)
 	}
 
-	// Check Sapper
+	// Check Sapper (Syndicate)
 	sapper, ok := Classes["sapper"]
 	if !ok {
 		t.Fatalf("Expected 'sapper' class to be loaded")
 	}
-	if sapper.Slots != 6 {
-		t.Errorf("Expected Sapper Slots 6, got %d", sapper.Slots)
+	if sapper.Slots != 8 {
+		t.Errorf("Expected Sapper Slots 8, got %d", sapper.Slots)
 	}
 
-	// Check Frigate
-	frigate, ok := Classes["frigate_ace"]
+	// Check Null-Walker
+	walker, ok := Classes["null_walker"]
 	if !ok {
-		t.Fatalf("Expected 'frigate_ace' class to be loaded")
+		t.Fatalf("Expected 'null_walker' class to be loaded")
 	}
-	if frigate.Type != "Space" {
-		t.Errorf("Expected Frigate Type 'Space', got %s", frigate.Type)
+	if walker.Stats.Flux != 10 {
+		t.Errorf("Expected Null-Walker Flux 10, got %d", walker.Stats.Flux)
 	}
 
 	// Check Item
@@ -2975,6 +3099,8 @@ const (
 	PACKET_TYPE_COMBAT_EVENT       = "PACKET_TYPE_COMBAT_EVENT"
 	PACKET_TYPE_PROJECTILE_SPAWN   = "PACKET_TYPE_PROJECTILE_SPAWN"
 	PACKET_TYPE_COMBAT_HIT         = "PACKET_TYPE_COMBAT_HIT"
+	PACKET_TYPE_DEATH              = "PACKET_TYPE_DEATH"
+	PACKET_TYPE_ENTITY_DIED        = "PACKET_TYPE_ENTITY_DIED"
 
 	// Behaviors
 	BEHAVIOR_MISSILE = "missile"
@@ -3480,7 +3606,7 @@ func handlePacket(conn *net.UDPConn, addr *net.UDPAddr, data []byte, repo game.P
 		if err := json.Unmarshal(packet.Payload, &loginPayload); err == nil {
 			player, err := repo.LoadPlayer(loginPayload.Username)
 			if err != nil || player == nil {
-				if player == nil { player, _ = repo.CreatePlayer(loginPayload.Username, "marine") }
+				if player == nil { player, _ = repo.CreatePlayer(loginPayload.Username, "breacher") }
 			}
 			if player == nil { return }
 
@@ -3633,7 +3759,7 @@ func handleAttack(conn *net.UDPConn, payload json.RawMessage, addr *net.UDPAddr)
 
 	// Spawn Projectile
 	speed := 20.0 // Units per sec
-	damage := 10.0
+	damage := game.ResolveGroundDamage(attacker.Player, target.Player)
 
 	// Create Projectile in Manager (Thread Safe?)
 	// projMgr is global, but map is not thread safe.
@@ -3710,6 +3836,28 @@ func gameLoop(conn *net.UDPConn, repo game.PlayerRepository) {
 					// Inner loop broadcast, inefficient but works for MVP
 					for _, s := range sessions {
 						conn.WriteToUDP(pktBytes, s.Addr)
+					}
+
+					// Death Check
+					if target.Player.CurrentHealth <= 0 {
+						// Respawn Logic
+						target.Player.CurrentHealth = 150.0 // Default/Max
+						target.Player.PositionX = 0
+						target.Player.PositionY = 0
+
+						// Send Death Packet to Victim
+						deathPkt := protocol.Packet{ Type: protocol.PACKET_TYPE_DEATH, Payload: []byte("{}") }
+						sendPacket(conn, target.Addr, deathPkt)
+
+						// Broadcast Entity Died
+						diedPayload := map[string]string{ "id": target.ID }
+						diedBytes, _ := json.Marshal(diedPayload)
+						diedPkt := protocol.Packet{ Type: protocol.PACKET_TYPE_ENTITY_DIED, Payload: diedBytes }
+						diedPktBytes, _ := json.Marshal(diedPkt)
+
+						for _, s := range sessions {
+							conn.WriteToUDP(diedPktBytes, s.Addr)
+						}
 					}
 				}
 			}
@@ -4191,42 +4339,44 @@ To handle the dual gameplay loops (Grid-based Horror vs. Vector-based Stealth) w
 ```md
 # Game Data: The RPG Bible
 
-## 1. Class Definitions (The Trinity)
-*Classes are defined by the "Suit" (Ground) or "License" (Space) currently equipped. Players can switch roles by changing gear at a station.*
+## 1. Class Definitions (The Industrial Roster)
+*The progression system has pivoted to "Industrial Bio-Horror". Characters are defined by their functional output.*
 
-### Ground Classes (The Exosuit)
-1.  **Marine (Archetype: The Wall)**
-    *   **Role:** Tank / Frontline.
-    *   **Playstyle:** Heavy Armor usage. Uses **Taunt** shouts to draw aggro from swarms.
-    *   **Signature Weapons:** Auto-Shotguns, Riot Shields.
-    *   **Passive:** *Adrenaline Rush* (Stamina regenerates faster when taking damage).
-2.  **Sapper (Archetype: The Architect)**
-    *   **Role:** Area Denial / Support.
-    *   **Playstyle:** Constructs temporary hardpoints. Controls the battlefield geometry.
-    *   **Signature Equipment:** Sentry Turrets, Barricade Walls, Satchel Charges.
-    *   **Passive:** *Efficient Construction* (Structures cost 20% less resource to build).
-3.  **Xeno-Biologist (Archetype: The Witch)**
-    *   **Role:** Healer / Buffer.
-    *   **Playstyle:** "Combat Alchemist." Harvests biomass from fallen enemies to brew instant injectors.
-    *   **Signature Equipment:** Dart Gun (Buffs allies, Debuffs enemies), Harvester Drone.
-    *   **Passive:** *Necrotic Harvest* (Kills grant a temporary stack of "Biomass" used for healing).
+### The United Sol Federation (USF)
+*   **Breacher (Heavy Tank):** High Torque. Uses hydraulic rams and riot shields to force entry.
+*   **Gunner (DPS):** Balanced. Standard infantry output. Good sustained fire.
+*   **Field Medic (Support):** High Compute. Uses advanced triage computers to stabilize critical wounds.
+*   **Operator (Specialist):** High Synapse. Drone controller and electronic warfare specialist.
 
-### Space Classes (The License)
-1.  **Frigate Ace (Archetype: The Needle)**
-    *   **Role:** Tackle / Scout.
-    *   **Playstyle:** Speed tanking (moving so fast turrets can't track). Locking down targets for the fleet.
-    *   **Signature Systems:** Warp Disruptors, Stasis Webs.
-    *   **Passive:** *Inertial Dampening* (+50% Agility/Turn Speed).
-2.  **Cruiser Captain (Archetype: The Anvil)**
-    *   **Role:** DPS / Line Ship.
-    *   **Playstyle:** Broadside combat. Rotating shield quadrants to mitigate incoming fire.
-    *   **Signature Systems:** Flak Batteries (Anti-Fighter), Heavy Shield Boosters.
-    *   **Passive:** *Grid Stabilization* (+10% Shield HP).
-3.  **Industrialist (Archetype: The Vein)**
-    *   **Role:** Logistics / Economy.
-    *   **Playstyle:** Mining high-value nodes in dangerous space. Evading capture.
-    *   **Signature Systems:** Mining Lasers, Cargo Expanders, "Blockade Runner" Cloak (Short duration invisibility).
-    *   **Passive:** *Yield Optimization* (+15% Mining Laser Yield).
+### The Celestial Concord
+*   **Flesh-Weaver (Healer):** High Flux/Synapse. Knits organic matter together using energy fields.
+*   **Abomination (Melee Tank):** Extreme Torque. A gene-spliced berserker. Fast movement, low defense.
+
+### The Void Syndicate
+*   **Scavenger (Looter):** High Synapse. Evasion tank and loot specialist.
+*   **Sapper (Builder):** Balanced Torque/Compute. Constructs turrets and defenses.
+
+### The Null-State
+*   **Null-Walker (Caster):** Extreme Flux. Warps reality to deal damage. Glass cannon.
+*   **Reality Anchor (Support Tank):** High Flux/Defense. Stabilizes local physics to prevent anomalies.
+
+---
+
+## 1.5. Industrial Attributes
+*Instead of Strength/Intelligence, we measure capacity.*
+
+*   **Torque (Physical Strength):**
+    *   Governs: Carry Capacity, Recoil Control, Heavy Weapon usage.
+    *   *Theme:* Hydraulic pressure, muscle density.
+*   **Compute (Tech Skill):**
+    *   Governs: Drone Limit, Crafting Speed, Hacking.
+    *   *Theme:* CPU cycles, neural implants.
+*   **Synapse (Reaction Speed):**
+    *   Governs: Turn Rate, Evasion, Critical Hit Chance.
+    *   *Theme:* Nervous system conductivity, combat stims.
+*   **Flux (Energy Output):**
+    *   Governs: Shield Regen, Ability Power, Capacitor Recharge.
+    *   *Theme:* Reactor output, psionic resonance.
 
 ---
 
@@ -4249,6 +4399,11 @@ To handle the dual gameplay loops (Grid-based Horror vs. Vector-based Stealth) w
 *   **Bonus 1:** **Dirty Hacks** (+15% E-War Strength).
 *   **Bonus 2:** **Scavenger Protocols** (+10% Loot Drop Rate).
 *   **Penalty:** **Scrap Hulls** (-10% Structure HP). Ships are fragile.
+
+### The Null-State
+*   **Philosophy:** Entropy & Silence.
+*   **Bonus:** **Phase Shift** (Chance to ignore damage).
+*   **Penalty:** **Instability** (Healing is 50% less effective).
 
 ---
 
@@ -5310,6 +5465,11 @@ func _on_packet_received(type: String, payload: Dictionary):
 			var weapon = gear["primary_weapon"]
 			if weapon:
 				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
+	elif type == "PACKET_TYPE_COMBAT_HIT":
+		var dmg = payload.get("damage", 0.0)
+		print("TOOK DAMAGE: ", dmg)
+	elif type == "PACKET_TYPE_DEATH":
+		print("YOU DIED. RESPAWNING...")
 
 func _physics_process(delta):
 	# State Machine Logic
