@@ -127,13 +127,25 @@ func loadItems() {
 func loadShips() {
 	// Adjust path as needed. Assuming running from server/ root or close to it.
 	// In production this might be an absolute path or relative to the executable.
-	// Trying relative path "assets/data/ships.json"
-	path := "assets/data/ships.json"
+	// Try multiple probable paths
+	possiblePaths := []string{
+		"assets/data/ships.json",
+		"../assets/data/ships.json",
+		"../../assets/data/ships.json",
+		"server/assets/data/ships.json", // If running from project root
+	}
 
-	// Check if we are running from cmd/ground or cmd/space
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		// Try going up levels if running from cmd subdirectories
-		path = "../../assets/data/ships.json"
+	path := ""
+	for _, p := range possiblePaths {
+		if _, err := os.Stat(p); err == nil {
+			path = p
+			break
+		}
+	}
+
+	if path == "" {
+		log.Printf("Error: ships.json not found in any expected location")
+		return
 	}
 
 	data, err := os.ReadFile(path)
@@ -157,13 +169,25 @@ func loadShips() {
 func loadClasses() {
 	// Adjust path as needed. Assuming running from server/ root or close to it.
 	// In production this might be an absolute path or relative to the executable.
-	// Trying relative path "assets/data/classes.json"
-	path := "assets/data/classes.json"
+	// Try multiple probable paths
+	possiblePaths := []string{
+		"assets/data/classes.json",
+		"../assets/data/classes.json",
+		"../../assets/data/classes.json",
+		"server/assets/data/classes.json", // If running from project root
+	}
 
-	// Check if we are running from cmd/ground or cmd/space
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		// Try going up levels if running from cmd subdirectories
-		path = "../../assets/data/classes.json"
+	path := ""
+	for _, p := range possiblePaths {
+		if _, err := os.Stat(p); err == nil {
+			path = p
+			break
+		}
+	}
+
+	if path == "" {
+		log.Printf("Error: classes.json not found in any expected location")
+		return
 	}
 
 	data, err := os.ReadFile(path)

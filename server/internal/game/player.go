@@ -191,6 +191,8 @@ func (r *PostgresPlayerRepository) CreatePlayer(username string, classID string)
 	// Default Health (Safe Value)
 	defaultHealth := 1000.0
 
+	// Default System
+	defaultSystem := "Sol-0"
 	// Default Motherboard
 	defaultMotherboard := Motherboard{
 		Slots: 0,
