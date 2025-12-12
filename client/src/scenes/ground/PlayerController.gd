@@ -73,6 +73,11 @@ func _on_packet_received(type: String, payload: Dictionary):
 			var weapon = gear["primary_weapon"]
 			if weapon:
 				print("PlayerController: Equipped Weapon: ", weapon.get("item_id", "Unknown"))
+	elif type == "PACKET_TYPE_COMBAT_HIT":
+		var dmg = payload.get("damage", 0.0)
+		print("TOOK DAMAGE: ", dmg)
+	elif type == "PACKET_TYPE_DEATH":
+		print("YOU DIED. RESPAWNING...")
 
 func _physics_process(delta):
 	# State Machine Logic

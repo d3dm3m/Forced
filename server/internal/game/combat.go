@@ -272,3 +272,35 @@ func CalculateLockTime(sourceScanRes float64, targetSCS float64) float64 {
 	// Note: This implies that higher ScanRes makes locking SLOWER, or ScanRes is a "Scan Delay" value.
 	return sourceScanRes / targetSCS
 }
+
+// ResolveGroundDamage calculates damage for ground combat based on stats.
+func ResolveGroundDamage(attacker *Player, target *Player) float64 {
+	// 1. Get Weapon Damage
+	weaponDamage := 5.0 // Default Unarmed
+	var itemID string
+
+	if attacker.GroundGear.PrimaryWeapon != nil {
+		itemID = attacker.GroundGear.PrimaryWeapon.ItemID
+	} else if attacker.GroundGear.Sidearm != nil {
+		itemID = attacker.GroundGear.Sidearm.ItemID
+	}
+
+	if itemDef, ok := Items[itemID]; ok {
+		if val, ok := itemDef.Stats["damage"]; ok {
+			weaponDamage = val
+		}
+	}
+
+	// 2. Get Target Defense
+	defense := 0.0
+	if classDef, ok := Classes[target.ClassID]; ok {
+		defense = float64(classDef.Stats.Defense)
+	}
+
+	// 3. Calculate Mitigation (MOBA Formula)
+	// Damage Multiplier = 100 / (100 + Defense)
+	multiplier := 100.0 / (100.0 + defense)
+
+	finalDamage := weaponDamage * multiplier
+	return finalDamage
+}

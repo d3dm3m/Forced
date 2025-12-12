@@ -126,7 +126,8 @@ def main():
         out.write("- [x] **Sprint 18 (Mechanics):** Implemented Passive Ship Simulation (Shield/Capacitor Regen).\n")
         out.write("- [x] **Sprint 19 (Ground):** Tactical Physics & Turn-Rate Movement.\n")
         out.write("- [x] **Sprint 19.2 (Ground):** Client-Side Raycast Fog of War (Shadow System).\n")
-        out.write("- [x] **Sprint 19.3 (Ground):** Action State Machine (Cast Point logic).\n\n")
+        out.write("- [x] **Sprint 19.3 (Ground):** Action State Machine (Cast Point logic).\n")
+        out.write("- [x] **Sprint 19.4 (Ground):** Ground Damage Resolution & Respawn.\n\n")
 
         out.write("## The Macro-Scale Architecture (Planned)\n")
         out.write("* **Zone Sharding:** The universe is split into `Systems`. Each System can be hosted on a different physical server node. The `IGatekeeper` interface will manage routing.\n")

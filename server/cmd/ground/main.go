@@ -242,7 +242,7 @@ func handleAttack(conn *net.UDPConn, payload json.RawMessage, addr *net.UDPAddr)
 
 	// Spawn Projectile
 	speed := 20.0 // Units per sec
-	damage := 10.0
+	damage := game.ResolveGroundDamage(attacker.Player, target.Player)
 
 	// Create Projectile in Manager (Thread Safe?)
 	// projMgr is global, but map is not thread safe.
@@ -319,6 +319,28 @@ func gameLoop(conn *net.UDPConn, repo game.PlayerRepository) {
 					// Inner loop broadcast, inefficient but works for MVP
 					for _, s := range sessions {
 						conn.WriteToUDP(pktBytes, s.Addr)
+					}
+
+					// Death Check
+					if target.Player.CurrentHealth <= 0 {
+						// Respawn Logic
+						target.Player.CurrentHealth = 150.0 // Default/Max
+						target.Player.PositionX = 0
+						target.Player.PositionY = 0
+
+						// Send Death Packet to Victim
+						deathPkt := protocol.Packet{ Type: protocol.PACKET_TYPE_DEATH, Payload: []byte("{}") }
+						sendPacket(conn, target.Addr, deathPkt)
+
+						// Broadcast Entity Died
+						diedPayload := map[string]string{ "id": target.ID }
+						diedBytes, _ := json.Marshal(diedPayload)
+						diedPkt := protocol.Packet{ Type: protocol.PACKET_TYPE_ENTITY_DIED, Payload: diedBytes }
+						diedPktBytes, _ := json.Marshal(diedPkt)
+
+						for _, s := range sessions {
+							conn.WriteToUDP(diedPktBytes, s.Addr)
+						}
 					}
 				}
 			}
