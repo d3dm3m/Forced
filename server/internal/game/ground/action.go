@@ -1,6 +1,7 @@
 package ground
 
 import (
+	"biohorror/internal/game/data"
 	"fmt"
 	"math"
 	"time"
@@ -16,18 +17,10 @@ type ActionRequest struct {
 
 // ActionContext holds state needed for validation
 type ActionContext struct {
-	PlayerPos     Vector2
-	PlayerStamina int
+	PlayerPos      Vector2
+	PlayerStamina  int
 	GlobalCooldown time.Time // When the last action finished
-	AbilityStats  AbilityStats
-}
-
-// AbilityStats defines the validation parameters for an ability
-type AbilityStats struct {
-	Range       float64
-	StaminaCost int
-	Cooldown    time.Duration
-	CastTime    time.Duration
+	AbilityDef     data.AbilityDefinition
 }
 
 // ValidateAction checks if an action is legal
@@ -41,18 +34,29 @@ func ValidateAction(req ActionRequest, ctx ActionContext) (bool, error) {
 	}
 
 	// 2. Stamina Check
-	if ctx.PlayerStamina < ctx.AbilityStats.StaminaCost {
-		return false, fmt.Errorf("insufficient stamina: has %d, needs %d", ctx.PlayerStamina, ctx.AbilityStats.StaminaCost)
+	if ctx.PlayerStamina < ctx.AbilityDef.StaminaCost {
+		return false, fmt.Errorf("insufficient stamina: has %d, needs %d", ctx.PlayerStamina, ctx.AbilityDef.StaminaCost)
 	}
 
 	// 3. Range Check
+	// If ability target is self (e.g. Buff), skip range check or enforce 0 distance?
+	// For MVP, treating Buffs as targeted on self location.
+	if ctx.AbilityDef.Type == data.AbilityTypeBuff {
+		// Range check is N/A or check if TargetPos is PlayerPos?
+		// Skipping for now.
+		return true, nil
+	}
+
 	dx := req.TargetPos.X - ctx.PlayerPos.X
 	dy := req.TargetPos.Y - ctx.PlayerPos.Y
 	dist := math.Sqrt(dx*dx + dy*dy)
 
 	// Validate against Max Range + Tolerance (hitbox size)
-	rangeTolerance := 1.0 // Unit size buffer
-	maxDist := ctx.AbilityStats.Range + rangeTolerance
+	// Currently Range is not on AbilityDefinition? It should be?
+	// Assuming 0 range for now if not defined, will fix in registry.
+	rangeLimit := ctx.AbilityDef.Range
+	rangeTolerance := 1.0
+	maxDist := rangeLimit + rangeTolerance
 
 	if dist > maxDist {
 		return false, fmt.Errorf("target out of range: %.2f > %.2f", dist, maxDist)

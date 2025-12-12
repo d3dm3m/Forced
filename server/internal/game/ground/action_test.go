@@ -1,6 +1,7 @@
 package ground
 
 import (
+	"biohorror/internal/game/data"
 	"testing"
 	"time"
 )
@@ -8,10 +9,11 @@ import (
 func TestValidateAction(t *testing.T) {
 	now := time.Now()
 
-	stats := AbilityStats{
+	def := data.AbilityDefinition{
 		Range:       10.0,
 		StaminaCost: 20,
 		Cooldown:    1 * time.Second,
+		Type:        data.AbilityTypeAttack,
 	}
 
 	tests := []struct {
@@ -30,7 +32,7 @@ func TestValidateAction(t *testing.T) {
 				PlayerPos:      Vector2{X: 0, Y: 0},
 				PlayerStamina:  100,
 				GlobalCooldown: now.Add(-1 * time.Second),
-				AbilityStats:   stats,
+				AbilityDef:     def,
 			},
 			wantValid: true,
 		},
@@ -44,7 +46,7 @@ func TestValidateAction(t *testing.T) {
 				PlayerPos:      Vector2{X: 0, Y: 0},
 				PlayerStamina:  10, // Needs 20
 				GlobalCooldown: now.Add(-1 * time.Second),
-				AbilityStats:   stats,
+				AbilityDef:     def,
 			},
 			wantValid: false,
 		},
@@ -58,7 +60,7 @@ func TestValidateAction(t *testing.T) {
 				PlayerPos:      Vector2{X: 0, Y: 0},
 				PlayerStamina:  100,
 				GlobalCooldown: now.Add(-1 * time.Second),
-				AbilityStats:   stats,
+				AbilityDef:     def,
 			},
 			wantValid: false,
 		},
@@ -72,7 +74,7 @@ func TestValidateAction(t *testing.T) {
 				PlayerPos:      Vector2{X: 0, Y: 0},
 				PlayerStamina:  100,
 				GlobalCooldown: now.Add(500 * time.Millisecond), // In future
-				AbilityStats:   stats,
+				AbilityDef:     def,
 			},
 			wantValid: false,
 		},
